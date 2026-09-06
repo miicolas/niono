@@ -1,0 +1,22 @@
+{
+  "name": "@digipm/db",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@digipm/contracts": "workspace:*",
+    "dotenv": "latest",
+    "drizzle-orm": "0.45.2",
+    "pg": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/pg": "latest"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "digipm",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.30.1",
+  "scripts": {
+    "dev": "dotenv -e .env -- pnpm --filter @digipm/web dev",
+    "build": "pnpm --filter @digipm/web build",
+    "start": "dotenv -e .env -- pnpm --filter @digipm/web start",
+    "typecheck": "pnpm -r typecheck",
+    "test": "dotenv -e .env -- vitest run",
+    "db:generate": "dotenv -e .env -- drizzle-kit generate",
+    "db:migrate": "dotenv -e .env -- tsx packages/db/migrate.ts",
+    "db:seed": "dotenv -e .env -- tsx scripts/seed.ts",
+    "format": "prettier --write apps packages scripts tests *.json *.yaml",
+    "format:check": "prettier --check apps packages scripts tests *.json *.yaml"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "dotenv-cli": "latest",
+    "drizzle-kit": "latest",
+    "drizzle-orm": "0.45.2",
+    "prettier": "latest",
+    "tsx": "latest",
+    "typescript": "^6.0.2",
+    "vitest": "^4.0.0"
+  }
+}

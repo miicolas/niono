@@ -1,26 +1,16 @@
 import assert from "node:assert/strict";
-const base = process.env.SMOKE_URL ?? "http://localhost:3001";
+import { base, jsonHeaders, signUp } from "./lib/http";
 const mailbox = process.env.MAILPIT_URL ?? "http://localhost:18025";
 const email = `auth-${crypto.randomUUID()}@example.test`;
 const password = "Auth-fixture-local-2026!";
-const headers = { "Content-Type": "application/json", Origin: base };
 async function post(path: string, body: unknown, cookie = "") {
   return fetch(base + "/api/auth/" + path, {
     method: "POST",
-    headers: { ...headers, Cookie: cookie },
+    headers: { ...jsonHeaders, Cookie: cookie },
     body: JSON.stringify(body),
   });
 }
-const signup = await post("sign-up/email", {
-  name: "Auth fixture",
-  email,
-  password,
-});
-assert.equal(signup.status, 200);
-const cookie = signup.headers
-  .getSetCookie()
-  .map((c) => c.split(";")[0])
-  .join("; ");
+const cookie = await signUp("Auth fixture", email, password);
 assert.equal(
   (await post("update-user", { name: "Nouveau nom" }, cookie)).status,
   200,

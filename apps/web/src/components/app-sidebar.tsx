@@ -51,6 +51,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useUI } from "@/lib/ui-store";
 import type { PageItem, Bootstrap } from "@/features/workspace/types";
+import { sortedFavorites } from "@/features/workspace/sorted-favorites";
 
 type Props = {
   pages: PageItem[];
@@ -68,14 +69,16 @@ type Props = {
 export function AppSidebar(props: Props) {
   const storePanel = useUI((s) => s.setPanel);
   const { setOpenMobile } = useSidebar();
-  const setPanel = (panel: Parameters<typeof storePanel>[0]) => {
-    storePanel(panel);
-    setOpenMobile(false);
-  };
-  const navigate = (id: string | null) => {
-    props.onNavigate(id);
-    setOpenMobile(false);
-  };
+  /** Wraps an action so the mobile sheet closes once it runs. */
+  const closing =
+    <A extends unknown[]>(fn: (...args: A) => void) =>
+    (...args: A) => {
+      fn(...args);
+      setOpenMobile(false);
+    };
+  const setPanel = closing(storePanel);
+  const navigate = closing(props.onNavigate);
+  const switchWorkspace = closing(props.onWorkspace);
   const [newWorkspace, setNewWorkspace] = useState(false);
   const [name, setName] = useState("");
   const workspace = props.bootstrap.workspaces.find(
@@ -92,9 +95,7 @@ export function AppSidebar(props: Props) {
     return map;
   }, [props.pages]);
   const roots = childrenByParent.get(null) ?? [];
-  const favorites = props.pages
-    .filter((p) => p.favorite)
-    .sort((a, b) => (a.favoritePosition ?? 0) - (b.favoritePosition ?? 0));
+  const favorites = sortedFavorites(props.pages);
   return (
     <Sidebar className="workspace-sidebar border-r-0">
       <SidebarHeader>
@@ -111,10 +112,7 @@ export function AppSidebar(props: Props) {
             {props.bootstrap.workspaces.map((w) => (
               <DropdownMenuItem
                 key={w.id}
-                onClick={() => {
-                  props.onWorkspace(w.id);
-                  setOpenMobile(false);
-                }}
+                onClick={() => switchWorkspace(w.id)}
               >
                 <span className="avatar">{w.name[0]}</span>
                 {w.name}

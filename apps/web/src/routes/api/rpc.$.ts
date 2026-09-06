@@ -1,7 +1,37 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RPCHandler } from "@orpc/server/fetch";
 import { router } from "@digipm/server";
+import { MAX_ARCHIVE_BYTES, MAX_RPC_BODY_BYTES } from "@digipm/contracts";
 const handler = new RPCHandler(router);
+const PREFIX = "/api/rpc";
+/** Archive imports carry the 16 Mo archive plus its JSON envelope. */
+const bodyLimit = (pathname: string) =>
+  pathname === `${PREFIX}/transfer/import`
+    ? MAX_ARCHIVE_BYTES + MAX_RPC_BODY_BYTES
+    : MAX_RPC_BODY_BYTES;
+async function readBody(request: Request, max: number) {
+  const reader = request.body?.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  if (reader)
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.length;
+      if (size > max) {
+        await reader.cancel();
+        return null;
+      }
+      chunks.push(value);
+    }
+  const body = new Uint8Array(size);
+  let at = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, at);
+    at += chunk.length;
+  }
+  return body;
+}
 export const Route = createFileRoute("/api/rpc/$")({
   server: {
     handlers: {
@@ -16,32 +46,12 @@ export const Route = createFileRoute("/api/rpc/$")({
           new URL(process.env.BETTER_AUTH_URL ?? request.url).origin
         )
           return new Response("Forbidden", { status: 403 });
-        const max =
-          new URL(request.url).pathname === "/api/rpc/transfer/import"
-            ? 18 * 1024 * 1024
-            : 3 * 1024 * 1024;
+        const pathname = new URL(request.url).pathname;
+        const max = bodyLimit(pathname);
         if (Number(request.headers.get("content-length")) > max)
           return new Response("Payload too large", { status: 413 });
-        const reader = request.body?.getReader();
-        const chunks: Uint8Array[] = [];
-        let size = 0;
-        if (reader)
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            size += value.length;
-            if (size > max) {
-              await reader.cancel();
-              return new Response("Payload too large", { status: 413 });
-            }
-            chunks.push(value);
-          }
-        const body = new Uint8Array(size);
-        let at = 0;
-        for (const chunk of chunks) {
-          body.set(chunk, at);
-          at += chunk.length;
-        }
+        const body = await readBody(request, max);
+        if (!body) return new Response("Payload too large", { status: 413 });
         const started = performance.now();
         const id = crypto.randomUUID();
         const { response } = await handler.handle(
@@ -50,7 +60,7 @@ export const Route = createFileRoute("/api/rpc/$")({
             headers: request.headers,
             body,
           }),
-          { prefix: "/api/rpc", context: { headers: request.headers } },
+          { prefix: PREFIX, context: { headers: request.headers } },
         );
         const result = response ?? new Response("Not found", { status: 404 });
         result.headers.set("X-Request-Id", id);
@@ -60,9 +70,7 @@ export const Route = createFileRoute("/api/rpc/$")({
             JSON.stringify({
               event: "rpc",
               requestId: id,
-              procedure: new URL(request.url).pathname
-                .replace(/[^a-zA-Z/]/g, "")
-                .slice(0, 100),
+              procedure: pathname.replace(/[^a-zA-Z/]/g, "").slice(0, 100),
               status: result.status,
               durationMs: Math.round(performance.now() - started),
             }),

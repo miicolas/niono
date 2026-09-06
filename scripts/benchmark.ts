@@ -103,9 +103,6 @@ try {
     JSON.stringify(report, null, 2),
   );
   console.log(JSON.stringify(report, null, 2));
-} catch (error) {
-  console.error(error);
-  throw error;
 } finally {
   console.log("Suppression du jeu synthétique.");
   await db.delete(s.workspaces).where(eq(s.workspaces.id, workspace.id));

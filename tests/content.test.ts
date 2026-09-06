@@ -332,8 +332,10 @@ test("les filtres de sélection multiple distinguent une cellule vide et un choi
 });
 
 test("un export de sous-arbre se réimporte une fois avec ses fichiers et références remappés", async () => {
-  const { exportArchive, importArchive } =
-    await import("../packages/server/src/transfer");
+  const { exportArchive } =
+    await import("../packages/server/src/transfer/export-archive");
+  const { importArchive } =
+    await import("../packages/server/src/transfer/import-archive");
   const root = await pages.createPage(owner, {
     workspaceId,
     title: "Archive é 🌿",
@@ -465,7 +467,8 @@ test("le calendrier et les colonnes filtrent avant de paginer la source", async 
 });
 
 test("les archives profondes sont rejetées et une ascendance tronquée ne donne aucun accès", async () => {
-  const { importArchive } = await import("../packages/server/src/transfer");
+  const { importArchive } =
+    await import("../packages/server/src/transfer/import-archive");
   const ids = Array.from({ length: 32 }, () => crypto.randomUUID());
   const archive = {
     format: "digipm-archive" as const,
@@ -575,8 +578,10 @@ test("la confirmation du déplacement refuse une audience qui a changé", async 
 });
 
 test("une archive sans fichiers reste importable et les références de fichiers restent attachées à leur entrée", async () => {
-  const { exportArchive, importArchive } =
-    await import("../packages/server/src/transfer");
+  const { exportArchive } =
+    await import("../packages/server/src/transfer/export-archive");
+  const { importArchive } =
+    await import("../packages/server/src/transfer/import-archive");
   const base = await pages.createPage(owner, { workspaceId, kind: "database" });
   const entry = await databases.addEntry(owner, {
     pageId: base.id,

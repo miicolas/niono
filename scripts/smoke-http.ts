@@ -3,26 +3,12 @@ import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import type { RouterClient } from "@orpc/server";
 import type { AppRouter } from "../packages/server/src";
-const base = process.env.SMOKE_URL ?? "http://localhost:3003";
+import { base, signUp } from "./lib/http";
 const password = "Smoke-test-local-2026!";
 const prefix = crypto.randomUUID().slice(0, 8);
 async function account(name: string) {
-  const response = await fetch(`${base}/api/auth/sign-up/email`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Origin: base },
-    body: JSON.stringify({
-      name,
-      email: `${name}-${prefix}@example.test`,
-      password,
-    }),
-  });
-  assert.equal(response.status, 200, `Inscription ${name}`);
-  const cookies = response.headers
-    .getSetCookie()
-    .map((c) => c.split(";")[0])
-    .join("; ");
-  assert.ok(cookies, "Cookie de session présent");
-  const headers = { Cookie: cookies, Origin: base };
+  const cookie = await signUp(name, `${name}-${prefix}@example.test`, password);
+  const headers = { Cookie: cookie, Origin: base };
   const client: RouterClient<AppRouter> = createORPCClient(
     new RPCLink({ url: `${base}/api/rpc`, headers }),
   );

@@ -267,6 +267,21 @@ export const viewSchema = z.object({
   filterMode: z.enum(["and", "or"]).default("and"),
 });
 export type ViewConfig = z.infer<typeof viewSchema>;
+export type FilterOperator = ViewConfig["filters"][number]["operator"];
+export const defaultViewConfig: ViewConfig = viewSchema.parse({});
+export function isMultiValued(type: PropertyType): boolean {
+  return type === "multiSelect" || type === "person" || type === "files";
+}
+export function isChoiceType(type: PropertyType): boolean {
+  return type === "select" || type === "status";
+}
+export function filterOperatorsFor(type: PropertyType): FilterOperator[] {
+  if (isMultiValued(type)) return ["contains", "eq", "neq", "empty"];
+  if (type === "checkbox" || isChoiceType(type)) return ["eq", "neq", "empty"];
+  if (type === "number" || type === "date")
+    return ["eq", "neq", "gt", "lt", "empty"];
+  return ["contains", "eq", "neq", "empty"];
+}
 export function validatePropertyValue(
   type: PropertyType,
   value: PropertyValue,
@@ -281,8 +296,8 @@ export function validatePropertyValue(
       Array.isArray(value) &&
       value.every((v) => options.some((o) => o.id === v))
     );
-  if (type === "files" || type === "person") return Array.isArray(value);
-  if (type === "select" || type === "status")
+  if (isMultiValued(type)) return Array.isArray(value);
+  if (isChoiceType(type))
     return typeof value === "string" && options.some((o) => o.id === value);
   if (type === "date")
     return (
@@ -296,6 +311,8 @@ export function validatePropertyValue(
   return typeof value === "string";
 }
 
+export const MAX_ARCHIVE_BYTES = 16 * 1024 * 1024;
+export const MAX_RPC_BODY_BYTES = 3 * 1024 * 1024;
 export const archiveSchema = z.object({
   format: z.literal("digipm-archive"),
   version: z.literal(1),
@@ -358,3 +375,15 @@ export const archiveSchema = z.object({
   warnings: z.array(z.string().max(300)).max(500).default([]),
 });
 export type Archive = z.infer<typeof archiveSchema>;
+export const emptyArchive = (): Archive => ({
+  format: "digipm-archive",
+  version: 1,
+  pages: [],
+  sources: [],
+  properties: [],
+  entries: [],
+  values: [],
+  views: [],
+  assets: [],
+  warnings: [],
+});

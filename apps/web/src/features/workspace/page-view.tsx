@@ -54,7 +54,7 @@ const DatabaseView = lazy(() =>
     default: m.DatabaseView,
   })),
 );
-import { exportMarkdown } from "./transfer";
+import { exportMarkdown } from "./export-markdown";
 type Props = {
   pageId: string;
   workspaceId: string;
@@ -183,6 +183,11 @@ function LoadedPage({
     });
     return metadataQueue.current;
   };
+  /** Flushes pending edits; throws `message` if the document still cannot be saved. */
+  const ensureSaved = async (message: string) => {
+    await save.flush();
+    if (save.dirty()) throw new Error(message);
+  };
   useEffect(() => {
     props.beforeLeave.current = async (requireSaved) => {
       if (
@@ -190,16 +195,19 @@ function LoadedPage({
         !(await update({ title: title.trim() || "Sans titre" }))
       )
         return false;
+      if (requireSaved) {
+        try {
+          await ensureSaved(
+            "Enregistrez ou résolvez le conflit avant de dupliquer cette page.",
+          );
+          return true;
+        } catch (error) {
+          reportError(error);
+          return false;
+        }
+      }
       await save.flush();
       if (!save.dirty()) return true;
-      if (requireSaved) {
-        reportError(
-          new Error(
-            "Enregistrez ou résolvez le conflit avant de dupliquer cette page.",
-          ),
-        );
-        return false;
-      }
       return new Promise<boolean>((resolve) => setLeaveResolve(() => resolve));
     };
     return () => {
@@ -267,16 +275,9 @@ function LoadedPage({
             <DropdownMenuItem
               onClick={async () => {
                 try {
-                  await save.flush();
-                  if (save.dirty())
-                    throw new Error(
-                      "Enregistrez le brouillon avant d’exporter l’archive.",
-                    );
-                  await save.flush();
-                  if (save.dirty())
-                    throw new Error(
-                      "Enregistrez ou résolvez le conflit avant d’exporter l’archive.",
-                    );
+                  await ensureSaved(
+                    "Enregistrez ou résolvez le conflit avant d’exporter l’archive.",
+                  );
                   const archive = await client.transfer.export({
                     pageId: page.id,
                     includeAssets: true,
@@ -304,7 +305,6 @@ function LoadedPage({
                 void exportMarkdown(
                   title,
                   editorRef.current?.getHTML() ?? "",
-                  page.id,
                 ).catch(reportError);
               }}
             >
@@ -742,11 +742,9 @@ function LoadedPage({
                 <Button
                   onClick={async () => {
                     try {
-                      await save.flush();
-                      if (save.dirty())
-                        throw new Error(
-                          "Résolvez la sauvegarde en cours avant de restaurer.",
-                        );
+                      await ensureSaved(
+                        "Résolvez la sauvegarde en cours avant de restaurer.",
+                      );
                       await client.pages.restore({
                         id: page.id,
                         versionId: selectedVersion,

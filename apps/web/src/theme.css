@@ -1346,8 +1346,9 @@ textarea::placeholder {
 }
 
 .board-card select {
-  width: calc(100% - 24px);
-  margin: 0 12px 10px;
+  display: block;
+  width: calc(100% - 34px);
+  margin: 0 12px 10px 22px;
   background: transparent;
   color: var(--muted-foreground);
   border: 0;
@@ -1396,9 +1397,4 @@ textarea::placeholder {
   top: 13px;
   width: 18px;
   padding: 0;
-}
-.board-card select {
-  display: block;
-  margin-left: 22px;
-  width: calc(100% - 34px);
 }

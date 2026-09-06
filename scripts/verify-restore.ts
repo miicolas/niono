@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { readFile, mkdir, access, writeFile } from "node:fs/promises";
 import { openSync, closeSync } from "node:fs";
 import { resolve, join } from "node:path";
+import { postgres } from "./lib/postgres";
 if (!process.argv[2]) throw new Error("Indiquez le dossier de sauvegarde.");
 const backup = resolve(process.argv[2]);
 const manifest = JSON.parse(
@@ -13,42 +14,23 @@ const dbName = `digipm_restore_${Date.now()}`;
 const destination = resolve(".data/restores", dbName);
 await mkdir(destination, { recursive: true });
 const started = Date.now();
-function run(args: string[]) {
-  const r = spawnSync(
-    "docker",
-    ["compose", "exec", "-T", "postgres", ...args],
-    { encoding: "utf8" },
-  );
-  if (r.status !== 0) throw new Error(r.stderr);
-  return r.stdout;
-}
-run(["createdb", "-U", "digipm", dbName]);
+postgres(["createdb", "-U", "digipm", dbName]);
 const fd = openSync(join(backup, "database.dump"), "r");
-const restored = spawnSync(
-  "docker",
-  [
-    "compose",
-    "exec",
-    "-T",
-    "postgres",
-    "pg_restore",
-    "-U",
-    "digipm",
-    "--exit-on-error",
-    "-d",
-    dbName,
-  ],
-  { stdio: [fd, "pipe", "pipe"], encoding: "utf8" },
-);
-closeSync(fd);
-if (restored.status !== 0) throw new Error(restored.stderr);
+try {
+  postgres(
+    ["pg_restore", "-U", "digipm", "--exit-on-error", "-d", dbName],
+    [fd, "pipe", "pipe"],
+  );
+} finally {
+  closeSync(fd);
+}
 const tar = spawnSync(
   "tar",
   ["-xzf", join(backup, "assets.tar.gz"), "-C", destination],
   { stdio: "inherit" },
 );
 if (tar.status !== 0) throw new Error("Fichiers non restaurés.");
-const keys = run([
+const keys = postgres([
   "psql",
   "-U",
   "digipm",
@@ -63,7 +45,7 @@ const keys = run([
   .filter(Boolean);
 for (const key of keys)
   await access(join(destination, manifest.assetsFolder, key));
-const counts = run([
+const counts = postgres([
   "psql",
   "-U",
   "digipm",

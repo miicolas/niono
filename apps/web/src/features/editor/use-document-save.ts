@@ -131,6 +131,7 @@ export function useDocumentSave(
       window.removeEventListener("online", retry);
     };
   }, [flush]);
+  const dirty = () => state.current.generation !== state.current.saved;
   return {
     status,
     draft,
@@ -139,7 +140,7 @@ export function useDocumentSave(
     flush,
     revision: () => state.current.revision,
     latest: () => state.current.content,
-    dirty: () => state.current.generation !== state.current.saved,
+    dirty,
     recover: () => {
       const d = draft;
       if (d) {
@@ -151,8 +152,7 @@ export function useDocumentSave(
     },
     ignoreRecovered: async () => {
       setDraft(null);
-      if (state.current.generation === state.current.saved)
-        await persist(() => del(key));
+      if (!dirty()) await persist(() => del(key));
     },
     discard: async () => {
       if (request.current) await request.current;

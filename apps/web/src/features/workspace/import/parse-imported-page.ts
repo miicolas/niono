@@ -1,19 +1,6 @@
-import { download } from "@/lib/download";
-import TurndownService from "turndown";
 import { marked } from "marked";
 import { documentSchema, safeUrl, type DocumentNode } from "@digipm/contracts";
-export async function exportMarkdown(
-  title: string,
-  html: string,
-  _pageId: string,
-) {
-  const service = new TurndownService({
-    headingStyle: "atx",
-    codeBlockStyle: "fenced",
-  });
-  const text = `# ${title}\n\n${service.turndown(html)}`;
-  download(`${title || "page"}.md`, text, "text/markdown");
-}
+const SKIPPED_TAGS = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT"]);
 export function parseImportedPage(
   name: string,
   text: string,
@@ -59,7 +46,7 @@ export function parseImportedPage(
       U: "underline",
     };
     if (tag === "BR") return [{ type: "hardBreak" }];
-    if (["SCRIPT", "STYLE", "IFRAME", "OBJECT"].includes(tag)) return [];
+    if (SKIPPED_TAGS.has(tag)) return [];
     let next = marks;
     if (types[tag]) next = [...marks, { type: types[tag]! }];
     if (tag === "A" && safeUrl(node.getAttribute("href") ?? ""))
@@ -75,7 +62,7 @@ export function parseImportedPage(
         ? [{ type: "paragraph", content: inline(node) }]
         : [];
     const tag = node.tagName;
-    if (["SCRIPT", "STYLE", "IFRAME", "OBJECT"].includes(tag)) return [];
+    if (SKIPPED_TAGS.has(tag)) return [];
     if (/^H[1-6]$/.test(tag))
       return [
         {

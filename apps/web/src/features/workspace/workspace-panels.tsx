@@ -1,8 +1,8 @@
 import { AccountSettings } from "@/features/auth/account-settings";
-import { ImportPanel } from "./import-panel";
+import { ImportPanel } from "./import/import-panel";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search, Trash2, RotateCcw, Plus, FileUp, Mail } from "lucide-react";
+import { Search, Trash2, RotateCcw, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { client } from "@/lib/api";
 import { authClient } from "@/lib/auth-client";
@@ -18,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Bootstrap } from "./types";
 import { reportError } from "@/lib/notifications";
-import { parseImportedPage } from "./transfer";
 import type { DocumentNode } from "@digipm/contracts";
 export function WorkspacePanels({
   workspaceId,

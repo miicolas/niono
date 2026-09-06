@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { openSync, closeSync } from "node:fs";
 import { resolve, join, dirname, basename } from "node:path";
+import { postgres } from "./lib/postgres";
 const destination = resolve(
   process.argv[2] ??
     `.data/backups/${new Date().toISOString().replace(/[:.]/g, "-")}`,
@@ -10,23 +11,14 @@ await mkdir(destination, { recursive: true });
 const assetRoot = resolve(process.env.ASSET_DIR ?? ".data/assets");
 const started = Date.now();
 const fd = openSync(join(destination, "database.dump"), "wx", 0o600);
-const result = spawnSync(
-  "docker",
-  [
-    "compose",
-    "exec",
-    "-T",
-    "postgres",
-    "pg_dump",
-    "-U",
-    "digipm",
-    "-Fc",
-    "digipm",
-  ],
-  { stdio: ["ignore", fd, "inherit"] },
-);
-closeSync(fd);
-if (result.status !== 0) throw new Error("Échec de la sauvegarde PostgreSQL.");
+try {
+  postgres(
+    ["pg_dump", "-U", "digipm", "-Fc", "digipm"],
+    ["ignore", fd, "inherit"],
+  );
+} finally {
+  closeSync(fd);
+}
 const tar = spawnSync(
   "tar",
   [

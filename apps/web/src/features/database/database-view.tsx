@@ -1,10 +1,6 @@
 import { useSearch, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useRef } from "react";
-import {
-  useQuery,
-  useInfiniteQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   useReactTable,
@@ -12,7 +8,7 @@ import {
   flexRender,
   type ColumnDef,
 } from "@tanstack/react-table";
-import { DragDropProvider, useDraggable, useDroppable } from "@dnd-kit/react";
+import { DragDropProvider } from "@dnd-kit/react";
 import {
   Table2,
   Kanban,
@@ -39,12 +35,14 @@ import {
 } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
+  defaultViewConfig,
+  filterOperatorsFor,
+  isChoiceType,
   viewSchema,
+  type FilterOperator,
   type ViewConfig,
   type PropertyValue,
-  type PropertyType,
 } from "@digipm/contracts";
-import { uploadFile } from "@/features/editor/upload";
 import { client } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,9 +56,19 @@ import {
 import { reportError } from "@/lib/notifications";
 import { download } from "@/lib/download";
 import Papa from "papaparse";
-type Database = Awaited<ReturnType<typeof client.databases.get>>;
-type Property = Database["properties"][number];
-type Row = Awaited<ReturnType<typeof client.databases.query>>["rows"][number];
+import { BoardColumn } from "./board-column";
+import { displayValue } from "./display-value";
+import { PropertyCell } from "./property-cell";
+import { PropertyForm } from "./property-form";
+import type { Property, Row } from "./types";
+const operatorLabels: Record<FilterOperator, string> = {
+  contains: "contient",
+  eq: "est égal à",
+  neq: "différent de",
+  gt: "supérieur à",
+  lt: "inférieur à",
+  empty: "est vide",
+};
 const noRows: Row[] = [];
 const noProperties: Property[] = [];
 const layouts = [
@@ -108,28 +116,24 @@ export function DatabaseView({
   const selected =
     metadata.data?.views.find((v) => v.id === viewId) ??
     metadata.data?.views[0];
-  const config =
-    localConfig ?? selected?.config ?? viewSchema.parse({ layout: "table" });
+  const config = localConfig ?? selected?.config ?? defaultViewConfig;
   const properties = metadata.data?.properties ?? noProperties;
   const groupProperty =
-    properties.find(
-      (p) => p.id === config.groupBy && ["status", "select"].includes(p.type),
-    ) ?? properties.find((p) => ["status", "select"].includes(p.type));
+    properties.find((p) => p.id === config.groupBy && isChoiceType(p.type)) ??
+    properties.find((p) => isChoiceType(p.type));
   const dateProperty =
     properties.find((p) => p.id === config.groupBy && p.type === "date") ??
     properties.find((p) => p.type === "date");
+  const calendarRange = {
+    start: startOfWeek(startOfMonth(month), { weekStartsOn: 1 }),
+    end: endOfWeek(endOfMonth(month), { weekStartsOn: 1 }),
+  };
   const calendarScope =
     config.layout === "calendar" && dateProperty
       ? {
           propertyId: dateProperty.id,
-          from: format(
-            startOfWeek(startOfMonth(month), { weekStartsOn: 1 }),
-            "yyyy-MM-dd",
-          ),
-          to: format(
-            endOfWeek(endOfMonth(month), { weekStartsOn: 1 }),
-            "yyyy-MM-dd",
-          ),
+          from: format(calendarRange.start, "yyyy-MM-dd"),
+          to: format(calendarRange.end, "yyyy-MM-dd"),
         }
       : undefined;
   const rowsQuery = useQuery({
@@ -608,10 +612,7 @@ export function DatabaseView({
                   {day}
                 </div>
               ))}
-              {eachDayOfInterval({
-                start: startOfWeek(startOfMonth(month), { weekStartsOn: 1 }),
-                end: endOfWeek(endOfMonth(month), { weekStartsOn: 1 }),
-              }).map((day) => (
+              {eachDayOfInterval(calendarRange).map((day) => (
                 <div
                   key={day.toISOString()}
                   className={`calendar-day ${isSameMonth(day, month) ? "" : "outside"}`}
@@ -804,7 +805,7 @@ export function DatabaseView({
               >
                 <option value="">Automatique</option>
                 {properties
-                  .filter((p) => ["status", "select", "date"].includes(p.type))
+                  .filter((p) => isChoiceType(p.type) || p.type === "date")
                   .map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
@@ -892,35 +893,14 @@ export function DatabaseView({
                     })
                   }
                 >
-                  {[
-                    { id: "contains", name: "contient" },
-                    { id: "eq", name: "est égal à" },
-                    { id: "neq", name: "différent de" },
-                    { id: "gt", name: "supérieur à" },
-                    { id: "lt", name: "inférieur à" },
-                    { id: "empty", name: "est vide" },
-                  ]
-                    .filter((o) => {
-                      const type =
-                        properties.find((p) => p.id === f.propertyId)?.type ??
-                        "text";
-                      if (o.id === "empty" || o.id === "eq" || o.id === "neq")
-                        return true;
-                      if (o.id === "gt" || o.id === "lt")
-                        return ["number", "date"].includes(type);
-                      return ![
-                        "number",
-                        "date",
-                        "checkbox",
-                        "select",
-                        "status",
-                      ].includes(type);
-                    })
-                    .map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {o.name}
-                      </option>
-                    ))}
+                  {filterOperatorsFor(
+                    properties.find((p) => p.id === f.propertyId)?.type ??
+                      "text",
+                  ).map((o) => (
+                    <option key={o} value={o}>
+                      {operatorLabels[o]}
+                    </option>
+                  ))}
                 </select>
                 <input
                   aria-label="Valeur du filtre"
@@ -967,381 +947,5 @@ export function DatabaseView({
         </DialogContent>
       </Dialog>
     </section>
-  );
-}
-function PropertyForm({
-  onSubmit,
-}: {
-  onSubmit: (values: {
-    name: string;
-    type: PropertyType;
-    options: { id: string; name: string; color: string }[];
-  }) => Promise<void>;
-}) {
-  const [type, setType] = useState<PropertyType>("text");
-  const [busy, setBusy] = useState(false);
-  return (
-    <form
-      className="panel-form"
-      onSubmit={async (e) => {
-        e.preventDefault();
-        const f = new FormData(e.currentTarget);
-        setBusy(true);
-        try {
-          await onSubmit({
-            name: String(f.get("name")),
-            type,
-            options: ["select", "multiSelect", "status"].includes(type)
-              ? String(f.get("options"))
-                  .split(",")
-                  .map((n) => n.trim())
-                  .filter(Boolean)
-                  .map((name) => ({
-                    id: crypto.randomUUID(),
-                    name,
-                    color: "gray",
-                  }))
-              : [],
-          });
-        } catch (error) {
-          reportError(error);
-        } finally {
-          setBusy(false);
-        }
-      }}
-    >
-      <Input
-        aria-label="Nom de la propriété"
-        name="name"
-        placeholder="Nom de la propriété"
-        required
-        maxLength={100}
-      />
-      <select
-        aria-label="Type de propriété"
-        value={type}
-        onChange={(e) => setType(e.target.value as PropertyType)}
-      >
-        {[
-          { id: "text", name: "Texte" },
-          { id: "number", name: "Nombre" },
-          { id: "checkbox", name: "Case à cocher" },
-          { id: "select", name: "Sélection" },
-          { id: "multiSelect", name: "Sélection multiple" },
-          { id: "status", name: "Statut" },
-          { id: "date", name: "Date" },
-          { id: "person", name: "Personnes" },
-          { id: "url", name: "URL" },
-          { id: "email", name: "Email" },
-          { id: "files", name: "Fichiers" },
-        ].map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.name}
-          </option>
-        ))}
-      </select>
-      {["select", "multiSelect", "status"].includes(type) && (
-        <label>
-          Options séparées par des virgules
-          <Input
-            name="options"
-            placeholder="À faire, En cours, Terminé"
-            required
-          />
-        </label>
-      )}
-      <Button disabled={busy}>Ajouter la propriété</Button>
-    </form>
-  );
-}
-function PropertyCell({
-  pageId,
-  property,
-  value,
-  editable,
-  members,
-  onChange,
-}: {
-  pageId: string;
-  property: Property;
-  value: PropertyValue;
-  editable: boolean;
-  members: Awaited<ReturnType<typeof client.workspace.members>>;
-  onChange: (value: PropertyValue) => void;
-}) {
-  const [draft, setDraft] = useState(
-    typeof value === "string" || typeof value === "number" ? String(value) : "",
-  );
-  if (property.type === "files")
-    return (
-      <div className="cell-files">
-        {(Array.isArray(value) ? value : []).map((id, i) => (
-          <span key={id}>
-            <a href={`/api/assets/${id}`} target="_blank" rel="noreferrer">
-              Fichier {i + 1}
-            </a>
-            {editable && (
-              <button
-                aria-label={`Retirer le fichier ${i + 1}`}
-                onClick={() =>
-                  onChange(
-                    (Array.isArray(value) ? value : []).filter((v) => v !== id),
-                  )
-                }
-              >
-                ×
-              </button>
-            )}
-          </span>
-        ))}
-        {editable && (
-          <label className="file-cell-upload">
-            Ajouter
-            <input
-              type="file"
-              aria-label={`Ajouter un fichier à ${property.name}`}
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                e.target.value = "";
-                try {
-                  const asset = await uploadFile(pageId, file);
-                  onChange([...(Array.isArray(value) ? value : []), asset.id]);
-                } catch (error) {
-                  reportError(error);
-                }
-              }}
-            />
-          </label>
-        )}
-      </div>
-    );
-  if (!editable)
-    return (
-      <span className="cell-value">
-        {displayValue(property, value, members)}
-      </span>
-    );
-  if (property.type === "checkbox")
-    return (
-      <input
-        type="checkbox"
-        aria-label={property.name}
-        checked={value === true}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-    );
-  if (property.type === "select" || property.type === "status")
-    return (
-      <select
-        aria-label={property.name}
-        value={typeof value === "string" ? value : ""}
-        onChange={(e) => onChange(e.target.value || null)}
-      >
-        <option value="">—</option>
-        {property.options.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.name}
-          </option>
-        ))}
-      </select>
-    );
-  if (property.type === "multiSelect" || property.type === "person") {
-    const options =
-      property.type === "person"
-        ? members.map((m) => ({ id: m.id, name: m.name }))
-        : property.options;
-    return (
-      <details className="cell-multi">
-        <summary>{displayValue(property, value, members) || "—"}</summary>
-        <div>
-          {options.map((o) => (
-            <label key={o.id}>
-              <input
-                type="checkbox"
-                checked={Array.isArray(value) && value.includes(o.id)}
-                onChange={(e) =>
-                  onChange(
-                    e.target.checked
-                      ? [...(Array.isArray(value) ? value : []), o.id]
-                      : (Array.isArray(value) ? value : []).filter(
-                          (id) => id !== o.id,
-                        ),
-                  )
-                }
-              />
-              {o.name}
-            </label>
-          ))}
-        </div>
-      </details>
-    );
-  }
-  return (
-    <input
-      aria-label={property.name}
-      type={
-        ["number", "date", "email", "url"].includes(property.type)
-          ? property.type
-          : "text"
-      }
-      step={property.type === "number" ? "any" : undefined}
-      value={draft}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={() => {
-        const next =
-          draft === ""
-            ? null
-            : property.type === "number"
-              ? Number(draft)
-              : draft;
-        if (next !== value) onChange(next);
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") e.currentTarget.blur();
-      }}
-    />
-  );
-}
-function displayValue(
-  property: Property,
-  value: PropertyValue,
-  members: Awaited<ReturnType<typeof client.workspace.members>>,
-) {
-  if (value === null) return "";
-  if (typeof value === "boolean") return value ? "✓" : "";
-  if (Array.isArray(value))
-    return value
-      .map((id) =>
-        property.type === "person"
-          ? (members.find((m) => m.id === id)?.name ?? id)
-          : (property.options.find((o) => o.id === id)?.name ?? id),
-      )
-      .join(", ");
-  return property.options.find((o) => o.id === value)?.name ?? String(value);
-}
-function BoardColumn({
-  id,
-  name,
-  pageId,
-  property,
-  config,
-  query,
-  onChange,
-  editable,
-  onNavigate,
-}: {
-  id: string;
-  name: string;
-  pageId: string;
-  property: Property;
-  config: ViewConfig;
-  query: string;
-  onChange: (
-    row: Row,
-    property: Property,
-    value: PropertyValue,
-  ) => Promise<void>;
-  editable: boolean;
-  onNavigate: (id: string) => void;
-}) {
-  const results = useInfiniteQuery({
-    queryKey: ["entries", pageId, "group", id, property.id, config, query],
-    initialPageParam: 0,
-    queryFn: ({ pageParam }) =>
-      client.databases.query({
-        pageId,
-        config,
-        query,
-        offset: pageParam,
-        limit: 50,
-        scope: { propertyId: property.id, value: id || null },
-      }),
-    getNextPageParam: (last) => (last.hasMore ? last.nextOffset : undefined),
-  });
-  const rows = results.data?.pages.flatMap((p) => p.rows) ?? [];
-  const { ref, isDropTarget } = useDroppable({
-    id: `group:${id}`,
-    disabled: !editable,
-  });
-  return (
-    <div
-      ref={ref}
-      className={`board-column ${isDropTarget ? "drop-target" : ""}`}
-    >
-      <header>
-        <span>{name}</span>
-        <small>{rows.length}</small>
-      </header>
-      {rows.map((row) => (
-        <BoardCard
-          key={row.id}
-          row={row}
-          editable={editable}
-          onNavigate={onNavigate}
-          property={property}
-          onChange={(value) => void onChange(row, property, value)}
-        />
-      ))}
-      {results.error && <p role="alert">{results.error.message}</p>}
-      {results.hasNextPage && (
-        <Button
-          variant="ghost"
-          disabled={results.isFetchingNextPage}
-          onClick={() => void results.fetchNextPage()}
-        >
-          Charger plus
-        </Button>
-      )}
-    </div>
-  );
-}
-function BoardCard({
-  row,
-  editable,
-  onNavigate,
-  property,
-  onChange,
-}: {
-  row: Row;
-  property: Property;
-  onChange: (value: PropertyValue) => void;
-  editable: boolean;
-  onNavigate: (id: string) => void;
-}) {
-  const { ref, handleRef, isDragging } = useDraggable({
-    id: row.id,
-    data: { row },
-    disabled: !editable,
-  });
-  return (
-    <div ref={ref} className={`board-card ${isDragging ? "dragging" : ""}`}>
-      <button
-        ref={handleRef}
-        aria-label={`Déplacer ${row.title}`}
-        className="board-grip"
-        disabled={!editable}
-      >
-        ⠿
-      </button>
-      <button onClick={() => onNavigate(row.id)}>
-        {row.icon}
-        <strong>{row.title}</strong>
-      </button>
-      {editable && (
-        <select
-          aria-label={`Statut de ${row.title}`}
-          value={String(row.values[property.id]?.value ?? "")}
-          onChange={(e) => onChange(e.target.value || null)}
-        >
-          <option value="">Sans statut</option>
-          {property.options.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.name}
-            </option>
-          ))}
-        </select>
-      )}
-    </div>
   );
 }

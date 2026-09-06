@@ -1,6 +1,6 @@
 # DigiPM
 
-Un espace de travail open source pour écrire et organiser ses projets, avec TanStack, PostgreSQL et Tiptap. Interface française sombre, thème papier, navigation issue du bloc shadcn **sidebar-10**. Authentification Better Auth par email et mot de passe, sans temps réel.
+Un espace de travail open source pour écrire et organiser ses projets, avec TanStack, PostgreSQL et Tiptap. Interface française sombre, thème papier, navigation issue du bloc shadcn **sidebar-10**. Authentification Better Auth par email et mot de passe, emails envoyés par Resend, sans temps réel.
 
 **Version de développement fonctionnelle. La parité complète avec Notion reste en cours.** Voir [l’état de livraison et ses limites](docs/validation/delivery.md), plutôt que d’interpréter le plan initial comme une liste de fonctions déjà terminées.
 
@@ -21,7 +21,7 @@ pnpm db:migrate
 pnpm dev
 ```
 
-Ouvrez l’adresse affichée par Vite, normalement [localhost:3000](http://localhost:3000), et créez un compte. Si le port est occupé, utilisez le port choisi par Vite dans `BETTER_AUTH_URL` puis redémarrez `pnpm dev`. Les emails locaux arrivent dans [Mailpit](http://localhost:18025).
+Ouvrez l’adresse affichée par Vite, normalement [localhost:3000](http://localhost:3000), et créez un compte. Si le port est occupé, utilisez le port choisi par Vite dans `BETTER_AUTH_URL` puis redémarrez `pnpm dev`. Sans `RESEND_API_KEY`, les emails locaux sont écrits en JSON dans `.data/outbox` et le lien à ouvrir apparaît dans la console.
 
 Pour créer un atelier de démonstration, définissez `DEMO_PASSWORD` dans `.env`, puis lancez `pnpm db:seed`. Le compte `atelier@digipm.test` reçoit des pages et une base d’exemple. Le seed est facultatif et ne crée pas de compte de démonstration en production.
 
@@ -32,9 +32,9 @@ Pour créer un atelier de démonstration, définissez `DEMO_PASSWORD` dans `.env
 - Sauvegarde sérialisée, révisions atomiques, retries idempotents, brouillons IndexedDB et résolution explicite des conflits.
 - Entrées de base ouvrables comme pages ; table virtualisée, tableau par statut paginé par colonne, liste, galerie et calendrier filtré par mois. Propriétés typées, filtres et vues enregistrées.
 - Import Markdown/CSV avec aperçu, export Markdown/JSON/CSV et archive de sous-arbre avec fichiers, réimportable avec remappage des identifiants.
-- Profil, changement et récupération du mot de passe avec SMTP.
+- Profil, changement et récupération du mot de passe ; emails de reset, de vérification et d’invitation envoyés par Resend.
 
-Le bouton IA propose une sélection et une prévisualisation. Il nécessite un fournisseur compatible configuré via `AI_BASE_URL`, `AI_MODEL` et éventuellement `AI_API_KEY`. Sans fournisseur, le panneau explique son indisponibilité. Le modèle payant « Notion-like editor » de Tiptap n’est pas inclus ; l’éditeur utilise les extensions open source et des composants propres au projet.
+Le bouton IA propose une sélection et une prévisualisation. Il nécessite `AI_MODEL` avec, au choix, `AI_GATEWAY_API_KEY` (Vercel AI Gateway) ou `AI_BASE_URL` et `AI_API_KEY` (service compatible OpenAI). Sans fournisseur, le panneau explique son indisponibilité. Le modèle payant « Notion-like editor » de Tiptap n’est pas inclus ; l’éditeur utilise les extensions open source et des composants propres au projet.
 
 ## Vérifications
 
@@ -52,7 +52,7 @@ Les tests d’intégration utilisent PostgreSQL et créent uniquement des compte
 
 ## Auto-hébergement
 
-Voir [le guide d’exploitation](docs/operations.md) pour Docker, SMTP, sauvegarde et restauration. L’image utilise Node 24 et fonctionne sans root. Les migrations s’exécutent dans un service distinct avant le démarrage de l’application.
+Voir [le guide d’exploitation](docs/operations.md) pour Docker, Resend, sauvegarde et restauration. L’image utilise Node 24 et fonctionne sans root. Les migrations s’exécutent dans un service distinct avant le démarrage de l’application.
 
 ## Architecture et contribution
 

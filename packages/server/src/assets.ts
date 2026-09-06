@@ -5,8 +5,10 @@ import { db, schema as s } from "@digipm/db";
 import { eq } from "drizzle-orm";
 import { ORPCError } from "@orpc/server";
 import { withPage, accessPage, missing } from "./access";
-const root = () => resolve(process.env.ASSET_DIR ?? ".data/assets");
+export const assetRoot = () => resolve(process.env.ASSET_DIR ?? ".data/assets");
 export const MAX_ASSET_BYTES = 20 * 1024 * 1024;
+export const safeAssetName = (name: string) =>
+  name.replace(/[\x00-\x1f/\\]/g, "_").slice(0, 200) || "Fichier";
 export function imageMime(bytes: Uint8Array) {
   if (
     bytes[0] === 0x89 &&
@@ -41,16 +43,19 @@ export async function storeAsset(
       message: "Choisissez un fichier de 20 Mo maximum.",
     });
   const key = randomUUID();
-  await mkdir(root(), { recursive: true });
+  await mkdir(assetRoot(), { recursive: true });
   try {
     return await withPage(userId, pageId, async (tx) => {
-      await writeFile(join(root(), key), bytes, { flag: "wx", mode: 0o600 });
+      await writeFile(join(assetRoot(), key), bytes, {
+        flag: "wx",
+        mode: 0o600,
+      });
       const [asset] = await tx
         .insert(s.assets)
         .values({
           pageId,
           key,
-          name: name.replace(/[\x00-\x1f/\\]/g, "_").slice(0, 200) || "Fichier",
+          name: safeAssetName(name),
           size: bytes.length,
           mime: imageMime(bytes),
         })
@@ -63,7 +68,7 @@ export async function storeAsset(
       };
     });
   } catch (error) {
-    await unlink(join(root(), key)).catch(() => {});
+    await unlink(join(assetRoot(), key)).catch(() => {});
     throw error;
   }
 }
@@ -71,5 +76,5 @@ export async function readAsset(userId: string, id: string) {
   const [asset] = await db.select().from(s.assets).where(eq(s.assets.id, id));
   if (!asset) throw missing();
   await accessPage(db, userId, asset.pageId);
-  return { asset, bytes: await readFile(join(root(), asset.key)) };
+  return { asset, bytes: await readFile(join(assetRoot(), asset.key)) };
 }

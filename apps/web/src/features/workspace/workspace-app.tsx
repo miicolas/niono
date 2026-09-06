@@ -30,6 +30,7 @@ import { client } from "@/lib/api";
 import { authClient } from "@/lib/auth-client";
 import { useUI } from "@/lib/ui-store";
 import type { PageItem } from "./types";
+import { sortedFavorites } from "./sorted-favorites";
 import { PageView } from "./page-view";
 import { WorkspacePanels } from "./workspace-panels";
 export type WorkspaceSearch = {
@@ -56,7 +57,7 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
   const recent = useQuery({
     queryKey: ["recent", workspaceId],
     queryFn: () => client.pages.recent({ workspaceId: workspaceId! }),
-    enabled: !!workspaceId,
+    enabled: !!workspaceId && !pageId,
   });
   const [moving, setMoving] = useState<PageItem | null>(null);
   const [pendingMove, setPendingMove] = useState<{
@@ -135,40 +136,42 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
       reportError(e);
     }
   };
-  const move = async (
-    id: string,
-    parentId: string | null,
-    beforeId?: string,
-    confirmed = false,
-    confirmedAudience?: { id: string; access: "edit" | "read" }[],
+  type MoveTarget = { id: string; parentId: string | null; beforeId?: string };
+  /** Performs the move; `audience` is the list of people the user confirmed will gain access. */
+  const commitMove = async (
+    target: MoveTarget,
+    audience?: { id: string; access: "edit" | "read" }[],
   ) => {
     try {
-      if (!confirmed) {
-        const preview = await client.pages.previewMove({ id, parentId });
-        if (preview.audience.length) {
-          setPendingMove({
-            id,
-            parentId,
-            beforeId,
-            audience: preview.audience,
-          });
-          return;
-        }
-      }
       await client.pages.move({
-        id,
-        parentId,
-        beforeId,
-        confirmAudienceChange: confirmed,
-        confirmedAudience,
+        ...target,
+        confirmAudienceChange: !!audience,
+        confirmedAudience: audience,
       });
       setPendingMove(null);
-      await cache.invalidateQueries({ queryKey: ["page", id] });
+      await cache.invalidateQueries({ queryKey: ["page", target.id] });
       await refresh();
       setMoving(null);
     } catch (e) {
       reportError(e);
     }
+  };
+  /** Previews the audience change and asks for confirmation before moving when someone gains access. */
+  const requestMove = async (target: MoveTarget) => {
+    try {
+      const preview = await client.pages.previewMove({
+        id: target.id,
+        parentId: target.parentId,
+      });
+      if (preview.audience.length) {
+        setPendingMove({ ...target, audience: preview.audience });
+        return;
+      }
+    } catch (e) {
+      reportError(e);
+      return;
+    }
+    await commitMove(target);
   };
   const action = async (action: string, page: PageItem) => {
     try {
@@ -177,11 +180,7 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
         return;
       }
       if (action === "favorite-up") {
-        const favorites = (pages.data ?? [])
-          .filter((p) => p.favorite)
-          .sort(
-            (a, b) => (a.favoritePosition ?? 0) - (b.favoritePosition ?? 0),
-          );
+        const favorites = sortedFavorites(pages.data ?? []);
         const at = favorites.findIndex((p) => p.id === page.id);
         if (at > 0) {
           [favorites[at - 1], favorites[at]] = [
@@ -274,7 +273,9 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
           }
         }}
         onAction={(a, p) => void action(a, p)}
-        onMove={(id, parent, before) => void move(id, parent, before)}
+        onMove={(id, parentId, beforeId) =>
+          void requestMove({ id, parentId, beforeId })
+        }
         onLogout={async () => {
           if (beforeLeave.current && !(await beforeLeave.current())) return;
           await authClient.signOut();
@@ -437,14 +438,7 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
           </div>
           <Button
             onClick={() =>
-              pendingMove &&
-              void move(
-                pendingMove.id,
-                pendingMove.parentId,
-                pendingMove.beforeId,
-                true,
-                pendingMove.audience,
-              )
+              pendingMove && void commitMove(pendingMove, pendingMove.audience)
             }
           >
             Confirmer le déplacement et les accès
@@ -471,7 +465,9 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
           <div className="max-h-80 overflow-auto">
             <button
               className="list-row w-full"
-              onClick={() => moving && void move(moving.id, null)}
+              onClick={() =>
+                moving && void requestMove({ id: moving.id, parentId: null })
+              }
             >
               À la racine de l’espace
             </button>
@@ -481,7 +477,10 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
                 <button
                   className="list-row w-full"
                   key={p.id}
-                  onClick={() => moving && void move(moving.id, p.id)}
+                  onClick={() =>
+                    moving &&
+                    void requestMove({ id: moving.id, parentId: p.id })
+                  }
                 >
                   {p.icon} {p.title}
                 </button>

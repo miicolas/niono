@@ -3,6 +3,9 @@ import { and, eq, sql, inArray, asc, desc, or, type SQL } from "drizzle-orm";
 import { ORPCError } from "@orpc/server";
 import {
   emptyDocument,
+  filterOperatorsFor,
+  isChoiceType,
+  isMultiValued,
   viewSchema,
   validatePropertyValue,
   type ViewConfig,
@@ -10,7 +13,8 @@ import {
   type PropertyOption,
   type PropertyValue,
 } from "@digipm/contracts";
-import { accessPage, withPage, missing } from "./access";
+import { accessPage, withPage, missing, visibleTo } from "./access";
+import { valueColumns, valueFrom } from "./property-values";
 
 async function sourceFor(userId: string, pageId: string) {
   await accessPage(db, userId, pageId);
@@ -135,11 +139,6 @@ export async function saveView(
     return view!;
   });
 }
-function valueFrom(row: typeof s.values.$inferSelect): PropertyValue {
-  return (
-    row.textValue ?? row.numberValue ?? row.boolValue ?? row.arrayValue ?? null
-  );
-}
 export async function updateCell(
   userId: string,
   input: {
@@ -208,13 +207,7 @@ export async function updateCell(
       });
     const value = input.value;
     const revision = (old?.revision ?? 0) + 1;
-    const fields = {
-      textValue: typeof value === "string" ? value : null,
-      numberValue: typeof value === "number" ? value : null,
-      boolValue: typeof value === "boolean" ? value : null,
-      arrayValue: Array.isArray(value) ? value : null,
-      revision,
-    };
+    const fields = { ...valueColumns(value), revision };
     await tx
       .insert(s.values)
       .values({ pageId: input.pageId, propertyId: input.propertyId, ...fields })
@@ -253,7 +246,7 @@ export async function queryEntries(
         ? sql`pv.number_value`
         : property.type === "checkbox"
           ? sql`pv.bool_value`
-          : ["multiSelect", "person", "files"].includes(property.type)
+          : isMultiValued(property.type)
             ? sql`pv.array_value`
             : sql`pv.text_value`;
     return sql`(SELECT ${column} FROM property_values pv WHERE pv.page_id=${s.pages.id} AND pv.property_id=${id})`;
@@ -262,7 +255,11 @@ export async function queryEntries(
     const e = expr(f.propertyId);
     const property = properties.find((p) => p.id === f.propertyId);
     const type = property?.type ?? "text";
-    const multiple = ["multiSelect", "person", "files"].includes(type);
+    const multiple = isMultiValued(type);
+    if (!filterOperatorsFor(type).includes(f.operator))
+      throw new ORPCError("BAD_REQUEST", {
+        message: "Cet opérateur ne convient pas au type de la propriété.",
+      });
     if (f.operator === "empty")
       return multiple
         ? sql`coalesce(jsonb_array_length(${e}),0)=0`
@@ -273,25 +270,11 @@ export async function queryEntries(
         o.name.toLocaleLowerCase() === f.value.toLocaleLowerCase(),
     );
     if (multiple) {
-      if (!["contains", "eq", "neq"].includes(f.operator))
-        throw new ORPCError("BAD_REQUEST", {
-          message: "Cet opérateur ne convient pas aux valeurs multiples.",
-        });
       const member = option?.id ?? f.value;
       return f.operator === "neq"
         ? sql`NOT coalesce(${e} ? ${member},false)`
         : sql`coalesce(${e} ? ${member},false)`;
     }
-    if (
-      (type === "checkbox" && !["eq", "neq"].includes(f.operator)) ||
-      (["select", "status"].includes(type) &&
-        !["eq", "neq"].includes(f.operator)) ||
-      (["number", "date"].includes(type) && f.operator === "contains") ||
-      (!["number", "date"].includes(type) && ["gt", "lt"].includes(f.operator))
-    )
-      throw new ORPCError("BAD_REQUEST", {
-        message: "Cet opérateur ne convient pas au type de la propriété.",
-      });
     const value =
       type === "number"
         ? Number(f.value)
@@ -319,8 +302,7 @@ export async function queryEntries(
     if (!property) throw new ORPCError("BAD_REQUEST");
     const e = expr(property.id);
     if ("value" in input.scope) {
-      if (!["select", "status"].includes(property.type))
-        throw new ORPCError("BAD_REQUEST");
+      if (!isChoiceType(property.type)) throw new ORPCError("BAD_REQUEST");
       scope =
         input.scope.value === null
           ? sql`${e} IS NULL`
@@ -340,7 +322,7 @@ export async function queryEntries(
     scope,
     eq(s.entries.sourceId, source.id),
     sql`${s.pages.deletedAt} IS NULL`,
-    sql`(NOT ${s.pages.privateRoot} OR ${s.pages.createdBy}=${userId} OR EXISTS(SELECT 1 FROM page_grants g WHERE g.page_id=${s.pages.id} AND g.user_id=${userId}))`,
+    visibleTo(userId, "pages"),
     input.query
       ? sql`${s.pages.title} ILIKE ${"%" + input.query.replace(/[%_\\]/g, "\\$&") + "%"}`
       : undefined,

@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { ORPCError } from "@orpc/server";
 import { randomBytes, createHash } from "node:crypto";
 import { workspaceRole, lockWorkspace, withPage, missing } from "./access";
-import { sendEmail } from "./auth";
+import { sendEmail } from "./email/send-email";
 export async function workspaceMembers(userId: string, workspaceId: string) {
   await workspaceRole(db, userId, workspaceId);
   return db

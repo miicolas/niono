@@ -1,8 +1,10 @@
+import { resolveModel } from "./ai/resolve-model";
 import { db, schema as s, type Transaction } from "@digipm/db";
 import { and, eq, sql, desc, inArray } from "drizzle-orm";
 import { ORPCError } from "@orpc/server";
 import { createHash, randomUUID } from "node:crypto";
 import {
+  defaultViewConfig,
   documentSchema,
   documentText,
   emptyDocument,
@@ -15,7 +17,9 @@ import {
   withPage,
   lockWorkspace,
   missing,
+  visiblePagesCte,
 } from "./access";
+import { remapAssetUrl, remapDocument, remapViewConfig } from "./remap";
 
 const welcome: DocumentNode = {
   type: "doc",
@@ -152,12 +156,9 @@ export async function listPages(
   trash = false,
 ) {
   await workspaceRole(db, userId, workspaceId);
-  const result = await db.execute<{
-    id: string;
-  }>(sql`WITH RECURSIVE visible AS (
-    SELECT p.id,p.parent_id, p.deleted_at IS NOT NULL AS trashed,0 AS depth FROM pages p WHERE p.workspace_id=${workspaceId} AND p.parent_id IS NULL AND (NOT p.private_root OR p.created_by=${userId} OR EXISTS(SELECT 1 FROM page_grants g WHERE g.page_id=p.id AND g.user_id=${userId}))
-    UNION ALL SELECT p.id,p.parent_id,v.trashed OR p.deleted_at IS NOT NULL,v.depth+1 FROM pages p JOIN visible v ON p.parent_id=v.id WHERE v.depth<30 AND p.workspace_id=${workspaceId} AND (NOT p.private_root OR p.created_by=${userId} OR EXISTS(SELECT 1 FROM page_grants g WHERE g.page_id=p.id AND g.user_id=${userId}))
-  ) SELECT id FROM visible WHERE trashed=${trash} LIMIT 10000`);
+  const result = await db.execute<{ id: string }>(
+    sql`WITH RECURSIVE ${visiblePagesCte(userId, workspaceId)} SELECT id FROM visible WHERE trashed=${trash} LIMIT 10000`,
+  );
   if (!result.rows.length) return [];
   return db
     .select({
@@ -214,7 +215,7 @@ export async function getPage(userId: string, pageId: string) {
     ...access,
     grants,
     document: document!,
-    aiAvailable: !!(process.env.AI_BASE_URL && process.env.AI_MODEL),
+    aiAvailable: resolveModel() !== undefined,
   };
 }
 export async function createPage(
@@ -289,14 +290,7 @@ export async function createPage(
       await tx.insert(s.views).values({
         sourceId: source!.id,
         name: "Table",
-        config: {
-          layout: "table",
-          sortBy: "position",
-          sortDirection: "asc",
-          hidden: [],
-          filters: [],
-          filterMode: "and",
-        },
+        config: defaultViewConfig,
       });
     }
     return page!;
@@ -488,18 +482,18 @@ export async function movePage(
         before.page.parentId !== input.parentId
       )
         throw missing();
+      const siblingsOf = and(
+        eq(s.pages.workspaceId, page.workspaceId),
+        input.parentId
+          ? eq(s.pages.parentId, input.parentId)
+          : sql`${s.pages.parentId} IS NULL`,
+        sql`${s.pages.id} <> ${page.id}`,
+      );
       const [previous] = await tx
         .select({ position: s.pages.position })
         .from(s.pages)
         .where(
-          and(
-            eq(s.pages.workspaceId, page.workspaceId),
-            input.parentId
-              ? eq(s.pages.parentId, input.parentId)
-              : sql`${s.pages.parentId} IS NULL`,
-            sql`${s.pages.id} <> ${page.id}`,
-            sql`${s.pages.position} < ${before.page.position}`,
-          ),
+          and(siblingsOf, sql`${s.pages.position} < ${before.page.position}`),
         )
         .orderBy(desc(s.pages.position))
         .limit(1);
@@ -513,15 +507,7 @@ export async function movePage(
         const siblings = await tx
           .select()
           .from(s.pages)
-          .where(
-            and(
-              eq(s.pages.workspaceId, page.workspaceId),
-              input.parentId
-                ? eq(s.pages.parentId, input.parentId)
-                : sql`${s.pages.parentId} IS NULL`,
-              sql`${s.pages.id} <> ${page.id}`,
-            ),
-          )
+          .where(siblingsOf)
           .orderBy(s.pages.position, s.pages.id);
         for (const [index, sibling] of siblings.entries())
           await tx
@@ -671,18 +657,11 @@ export async function duplicatePage(userId: string, id: string) {
         .select()
         .from(s.documents)
         .where(eq(s.documents.pageId, row.id));
-      const copied = JSON.parse(JSON.stringify(doc!.content), (key, value) => {
-        if (key === "id" && typeof value === "string") return randomUUID();
-        if (key === "pageId" && mapping.has(value)) return mapping.get(value);
-        if (typeof value === "string" && value.startsWith("/api/assets/")) {
-          const assetId = value.slice("/api/assets/".length);
-          if (assetMapping.has(assetId))
-            return "/api/assets/" + assetMapping.get(assetId);
-        }
-        return value;
-      }) as DocumentNode;
+      const copied = remapDocument(doc!.content, {
+        pages: mapping,
+        assets: assetMapping,
+      });
       const newId = mapping.get(row.id)!;
-      const coverId = original.cover?.replace("/api/assets/", "");
       await tx.insert(s.pages).values({
         ...original,
         id: newId,
@@ -691,10 +670,9 @@ export async function duplicatePage(userId: string, id: string) {
           row.id === id ? page.parentId : mapping.get(original.parentId!)!,
         createdBy: userId,
         privateRoot: original.privateRoot,
-        cover:
-          coverId && assetMapping.has(coverId)
-            ? "/api/assets/" + assetMapping.get(coverId)
-            : original.cover,
+        cover: original.cover
+          ? remapAssetUrl(original.cover, assetMapping, original.cover)
+          : null,
         revision: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -737,22 +715,12 @@ export async function duplicatePage(userId: string, id: string) {
           .select()
           .from(s.views)
           .where(eq(s.views.sourceId, source.id))) {
-          const c = view.config;
           await tx.insert(s.views).values({
             ...view,
             id: randomUUID(),
             sourceId,
             revision: 0,
-            config: {
-              ...c,
-              sortBy: propertyMapping.get(c.sortBy) ?? c.sortBy,
-              groupBy: c.groupBy ? propertyMapping.get(c.groupBy) : undefined,
-              hidden: c.hidden.map((id) => propertyMapping.get(id) ?? id),
-              filters: c.filters.map((f) => ({
-                ...f,
-                propertyId: propertyMapping.get(f.propertyId) ?? f.propertyId,
-              })),
-            },
+            config: remapViewConfig(view.config, propertyMapping),
           });
         }
       }
@@ -797,10 +765,8 @@ export async function searchPages(
     icon: string;
     excerpt: string;
   }>(sql`
-    WITH RECURSIVE visible AS (
-      SELECT p.id,0 depth FROM pages p WHERE p.workspace_id=${workspaceId} AND p.parent_id IS NULL AND p.deleted_at IS NULL AND (NOT p.private_root OR p.created_by=${userId} OR EXISTS(SELECT 1 FROM page_grants g WHERE g.page_id=p.id AND g.user_id=${userId}))
-      UNION ALL SELECT p.id,v.depth+1 FROM pages p JOIN visible v ON p.parent_id=v.id WHERE v.depth<30 AND p.workspace_id=${workspaceId} AND p.deleted_at IS NULL AND (NOT p.private_root OR p.created_by=${userId} OR EXISTS(SELECT 1 FROM page_grants g WHERE g.page_id=p.id AND g.user_id=${userId}))
-    ) SELECT p.id,p.title,p.icon,left(d.plain_text,180) excerpt FROM pages p JOIN page_documents d ON d.page_id=p.id JOIN visible v ON v.id=p.id
+    WITH RECURSIVE ${visiblePagesCte(userId, workspaceId)}
+    SELECT p.id,p.title,p.icon,left(d.plain_text,180) excerpt FROM pages p JOIN page_documents d ON d.page_id=p.id JOIN visible v ON v.id=p.id AND NOT v.trashed
     WHERE p.title ILIKE ${"%" + query.replace(/[%_\\]/g, "\\$&") + "%"} OR to_tsvector('simple',d.plain_text) @@ plainto_tsquery('simple',${query})
     ORDER BY ts_rank(to_tsvector('simple',d.plain_text),plainto_tsquery('simple',${query})) DESC,p.updated_at DESC,p.id LIMIT 40
   `);
@@ -822,34 +788,17 @@ export async function previewMove(
 
 export async function recentPages(userId: string, workspaceId: string) {
   await workspaceRole(db, userId, workspaceId);
-  const candidates = await db
-    .select({
-      id: s.pages.id,
-      title: s.pages.title,
-      icon: s.pages.icon,
-      visitedAt: s.recentPages.visitedAt,
-    })
-    .from(s.recentPages)
-    .innerJoin(s.pages, eq(s.pages.id, s.recentPages.pageId))
-    .where(
-      and(
-        eq(s.recentPages.userId, userId),
-        eq(s.pages.workspaceId, workspaceId),
-      ),
-    )
-    .orderBy(desc(s.recentPages.visitedAt))
-    .limit(100);
-  const visible: typeof candidates = [];
-  for (const page of candidates) {
-    try {
-      await accessPage(db, userId, page.id);
-      visible.push(page);
-      if (visible.length === 12) break;
-    } catch {
-      /* Revoked or trashed pages are excluded. */
-    }
-  }
-  return visible;
+  const result = await db.execute<{
+    id: string;
+    title: string;
+    icon: string;
+    visitedAt: Date;
+  }>(sql`
+    WITH RECURSIVE ${visiblePagesCte(userId, workspaceId)}
+    SELECT p.id,p.title,p.icon,r.visited_at AS "visitedAt" FROM recent_pages r JOIN pages p ON p.id=r.page_id JOIN visible v ON v.id=p.id AND NOT v.trashed
+    WHERE r.user_id=${userId} AND p.workspace_id=${workspaceId} ORDER BY r.visited_at DESC LIMIT 12
+  `);
+  return result.rows;
 }
 export async function reorderFavorites(
   userId: string,

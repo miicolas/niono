@@ -1,5 +1,5 @@
 import { db, schema as s, type Transaction } from "@digipm/db";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { ORPCError } from "@orpc/server";
 export type Connection = typeof db | Transaction;
 export const missing = () =>
@@ -18,6 +18,49 @@ export async function workspaceRole(
   if (!member) throw missing();
   return member.role;
 }
+type Ancestor = {
+  id: string;
+  created_by: string;
+  private_root: boolean;
+  deleted_at: Date | null;
+  parent_id: string | null;
+};
+async function ancestry(cx: Connection, pageId: string) {
+  const result = await cx.execute<Ancestor>(
+    sql`WITH RECURSIVE ancestry AS (SELECT id,parent_id,created_by,private_root,deleted_at,0 AS depth FROM pages WHERE id=${pageId} UNION ALL SELECT p.id,p.parent_id,p.created_by,p.private_root,p.deleted_at,a.depth+1 FROM pages p JOIN ancestry a ON p.id=a.parent_id WHERE a.depth<30) SELECT * FROM ancestry`,
+  );
+  if (!result.rows.some((row) => row.parent_id === null)) throw missing();
+  return result.rows;
+}
+/** Resolves whether `userId` may see the page; returns null when blocked, else the edit permission. */
+function resolveAccess(
+  ancestors: Ancestor[],
+  grants: { pageId: string; userId: string; role: string }[],
+  userId: string,
+  role: string,
+) {
+  let canEdit = role !== "viewer";
+  for (const ancestor of ancestors) {
+    if (!ancestor.private_root || ancestor.created_by === userId) continue;
+    const grant = grants.find(
+      (g) => g.pageId === ancestor.id && g.userId === userId,
+    );
+    if (!grant) return null;
+    if (grant.role === "viewer") canEdit = false;
+  }
+  return canEdit;
+}
+function grantsFor(cx: Connection, pageIds: string[], userId?: string) {
+  return cx
+    .select()
+    .from(s.grants)
+    .where(
+      and(
+        inArray(s.grants.pageId, pageIds),
+        userId ? eq(s.grants.userId, userId) : undefined,
+      ),
+    );
+}
 export async function accessPage(
   cx: Connection,
   userId: string,
@@ -28,36 +71,31 @@ export async function accessPage(
   const [page] = await cx.select().from(s.pages).where(eq(s.pages.id, pageId));
   if (!page) throw missing();
   const role = await workspaceRole(cx, userId, page.workspaceId);
-  const ancestors = await cx.execute<{
-    id: string;
-    created_by: string;
-    private_root: boolean;
-    deleted_at: Date | null;
-    parent_id: string | null;
-  }>(
-    sql`WITH RECURSIVE ancestry AS (SELECT id,parent_id,created_by,private_root,deleted_at,0 AS depth FROM pages WHERE id=${pageId} UNION ALL SELECT p.id,p.parent_id,p.created_by,p.private_root,p.deleted_at,a.depth+1 FROM pages p JOIN ancestry a ON p.id=a.parent_id WHERE a.depth<30) SELECT * FROM ancestry`,
-  );
-  if (!ancestors.rows.some((row) => row.parent_id === null)) throw missing();
-  let canEdit = role !== "viewer";
-  for (const ancestor of ancestors.rows) {
-    if (ancestor.deleted_at && !includeDeleted) throw missing();
-    if (ancestor.private_root && ancestor.created_by !== userId) {
-      const [grant] = await cx
-        .select()
-        .from(s.grants)
-        .where(
-          and(eq(s.grants.pageId, ancestor.id), eq(s.grants.userId, userId)),
-        );
-      if (!grant) throw missing();
-      if (grant.role === "viewer") canEdit = false;
-    }
-  }
+  const ancestors = await ancestry(cx, pageId);
+  if (!includeDeleted && ancestors.some((a) => a.deleted_at)) throw missing();
+  const privateIds = ancestors.filter((a) => a.private_root).map((a) => a.id);
+  const grants = privateIds.length
+    ? await grantsFor(cx, privateIds, userId)
+    : [];
+  const canEdit = resolveAccess(ancestors, grants, userId, role);
+  if (canEdit === null) throw missing();
   if (write && !canEdit)
     throw new ORPCError("FORBIDDEN", {
       message: "Cette page est en lecture seule.",
     });
   return { page, canEdit, role };
 }
+/** SQL predicate: the page aliased `alias` is visible to `userId` (public, own, or granted). */
+export const visibleTo = (userId: string, alias = "p") => {
+  const a = sql.raw(alias);
+  return sql`(NOT ${a}.private_root OR ${a}.created_by=${userId} OR EXISTS(SELECT 1 FROM page_grants g WHERE g.page_id=${a}.id AND g.user_id=${userId}))`;
+};
+/** Recursive CTE body `visible(id,parent_id,trashed,depth)` of every page of the workspace reachable by `userId`. */
+export const visiblePagesCte = (userId: string, workspaceId: string) =>
+  sql`visible AS (
+    SELECT p.id,p.parent_id,p.deleted_at IS NOT NULL AS trashed,0 AS depth FROM pages p WHERE p.workspace_id=${workspaceId} AND p.parent_id IS NULL AND ${visibleTo(userId)}
+    UNION ALL SELECT p.id,p.parent_id,v.trashed OR p.deleted_at IS NOT NULL,v.depth+1 FROM pages p JOIN visible v ON p.parent_id=v.id WHERE v.depth<30 AND p.workspace_id=${workspaceId} AND ${visibleTo(userId)}
+  )`;
 export async function lockWorkspace(cx: Transaction, workspaceId: string) {
   await cx
     .select({ id: s.workspaces.id })
@@ -86,46 +124,29 @@ export async function withPage<T>(
   });
 }
 
-export async function pageAudience(
-  cx: Connection,
-  workspaceId: string,
-  pageId: string | null,
-) {
-  const members = await cx
+function workspaceMembers(cx: Connection, workspaceId: string) {
+  return cx
     .select({ id: s.members.userId, name: s.user.name, role: s.members.role })
     .from(s.members)
     .innerJoin(s.user, eq(s.user.id, s.members.userId))
     .where(eq(s.members.workspaceId, workspaceId));
+}
+type Member = Awaited<ReturnType<typeof workspaceMembers>>[number];
+async function audienceOf(
+  cx: Connection,
+  members: Member[],
+  pageId: string | null,
+) {
   if (!pageId)
     return members.map((m) => ({ ...m, canEdit: m.role !== "viewer" }));
-  const rows = await cx.execute<{
-    id: string;
-    created_by: string;
-    private_root: boolean;
-  }>(
-    sql`WITH RECURSIVE a AS (SELECT id,parent_id,created_by,private_root,0 depth FROM pages WHERE id=${pageId} UNION ALL SELECT p.id,p.parent_id,p.created_by,p.private_root,a.depth+1 FROM pages p JOIN a ON p.id=a.parent_id WHERE a.depth<30) SELECT * FROM a`,
+  const ancestors = await ancestry(cx, pageId);
+  const grants = await grantsFor(
+    cx,
+    ancestors.map((a) => a.id),
   );
-  if (!rows.rows.length) throw missing();
-  const grants = await cx
-    .select()
-    .from(s.grants)
-    .where(
-      sql`${s.grants.pageId} IN (${sql.join(
-        rows.rows.map((p) => sql`${p.id}`),
-        sql`,`,
-      )})`,
-    );
   return members.flatMap((member) => {
-    let canEdit = member.role !== "viewer";
-    for (const page of rows.rows) {
-      if (!page.private_root || page.created_by === member.id) continue;
-      const grant = grants.find(
-        (g) => g.pageId === page.id && g.userId === member.id,
-      );
-      if (!grant) return [];
-      if (grant.role === "viewer") canEdit = false;
-    }
-    return [{ ...member, canEdit }];
+    const canEdit = resolveAccess(ancestors, grants, member.id, member.role);
+    return canEdit === null ? [] : [{ ...member, canEdit }];
   });
 }
 export async function audienceChange(
@@ -133,8 +154,9 @@ export async function audienceChange(
   page: typeof s.pages.$inferSelect,
   parentId: string | null,
 ) {
-  const old = await pageAudience(cx, page.workspaceId, page.id);
-  let next = await pageAudience(cx, page.workspaceId, parentId);
+  const members = await workspaceMembers(cx, page.workspaceId);
+  const old = await audienceOf(cx, members, page.id);
+  let next = await audienceOf(cx, members, parentId);
   if (page.privateRoot) {
     const grants = await cx
       .select()

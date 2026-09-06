@@ -10,18 +10,19 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/openai-compatible": "3.0.44",
     "@better-auth/drizzle-adapter": "1.7.3",
     "@better-auth/utils": "0.4.2",
     "@digipm/contracts": "workspace:*",
     "@digipm/db": "workspace:*",
     "@orpc/server": "1.15.0",
+    "ai": "7.0.93",
     "better-auth": "1.7.3",
     "drizzle-orm": "0.45.2",
-    "nodemailer": "10.0.0",
+    "resend": "6.26.0",
     "zod": "4.5.4"
   },
   "devDependencies": {
-    "@types/node": "26.4.1",
-    "@types/nodemailer": "8.0.1"
+    "@types/node": "26.4.1"
   }
 }

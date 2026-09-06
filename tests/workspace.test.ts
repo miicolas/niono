@@ -1,10 +1,6 @@
 import { expect, test } from "vitest";
-import { auth } from "../packages/server/src/auth";
-import {
-  createWorkspace,
-  getPage,
-  listPages,
-} from "../packages/server/src/pages";
+import { auth } from "@/auth";
+import { createWorkspace, getPage, listPages } from "@/server/services/pages";
 
 test("un nouvel espace possède une première page privée aux autres utilisateurs", async () => {
   const a = await auth.api.signUpEmail({
@@ -25,7 +21,7 @@ test("un nouvel espace possède une première page privée aux autres utilisateu
   const result = await listPages(a.user.id, workspace.id);
   expect(result.length).toBeGreaterThan(0);
   expect((await getPage(a.user.id, result[0]!.id)).page.title).toBe(
-    "Bienvenue dans votre espace",
+    "Bienvenue dans votre espace"
   );
   await expect(getPage(b.user.id, result[0]!.id)).rejects.toMatchObject({
     code: "NOT_FOUND",

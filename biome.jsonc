@@ -1,0 +1,81 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.0.6/schema.json",
+  "extends": ["ultracite"],
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "**",
+      "!**/routeTree.gen.ts",
+      "!migrations/meta/**",
+      "!.scratch/**",
+      "!.agents/**",
+      "!skills-lock.json"
+    ]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 80
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "trailingCommas": "es5",
+      "semicolons": "always",
+      "bracketSpacing": true,
+      "arrowParentheses": "always"
+    }
+  },
+  "linter": {
+    "rules": {
+      "performance": {
+        "noNamespaceImport": "off",
+        "noImgElement": "off"
+      },
+      "style": {
+        // TanStack Start renders the full document in routes/__root.tsx
+        "noHeadElement": "off"
+      },
+      "suspicious": {
+        "noExplicitAny": "error",
+        "noConsole": {
+          "level": "error",
+          "options": {
+            "allow": ["warn", "error", "info", "debug", "trace"]
+          }
+        },
+        "noArrayIndexKey": "off"
+      },
+      "nursery": {
+        "noUnknownAtRule": "off",
+        "noShadow": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      // TanStack Start server-route catch-alls are named `$.ts`
+      "includes": ["routes/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useFilenamingConvention": "off"
+          }
+        }
+      }
+    },
+    {
+      // shadcn/ui generated components — formatted but not linted so that
+      // `shadcn add --diff` stays meaningful
+      "includes": ["components/ui/**"],
+      "linter": {
+        "enabled": false
+      }
+    }
+  ]
+}

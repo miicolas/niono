@@ -34,7 +34,7 @@ Ce document conserve les objectifs initiaux. Le rapport de livraison distingue l
 | Validation | Zod | Entrées, filtres, documents, configuration |
 | Fichiers | Adaptateur stockage local puis S3 compatible | Upload autorisé et accès privé |
 | Recherche V1 | PostgreSQL full-text + pg_trgm | Titres, contenu, pertinence et tolérance limitée |
-| Emails | SMTP ; Mailpit en développement | Récupération de compte et invitations |
+| Emails | Resend ; boîte d’envoi locale sur disque en développement | Récupération de compte, vérification d’adresse et invitations |
 | Tests | Vitest, PostgreSQL réel, Playwright | Invariants, contrats, parcours et captures |
 | Observabilité | Logs structurés + métriques HTTP/SQL | Latences, erreurs, conflits, sauvegardes échouées |
 | Livraison | Docker Compose puis images déployables | Installation reproductible et restauration |
@@ -132,7 +132,7 @@ Parcours : inscription email/mot de passe → création idempotente du premier w
 
 Better Auth conserve `/api/auth/*`, son client et son middleware de cookies TanStack. `emailAndPassword.enabled` active le mode demandé. Le serveur appelle l'API de session Better Auth avant les opérations privées. oRPC gère ensuite l'autorisation métier ; il ne réimplémente pas l'authentification. [Intégration officielle](https://better-auth.com/docs/integrations/tanstack).
 
-Cookies HttpOnly, Secure en production, origine autorisée, limitation d'essais persistante compatible déploiement, erreurs de récupération non révélatrices et jetons expirables. SMTP est requis pour le reset en production, Mailpit suffit localement. Inscription personnelle possible immédiatement ; une adresse doit être vérifiée avant d'accepter une invitation associée à cette adresse. L'inscription publique peut être désactivée pour un auto-hébergement privé après création de l'administrateur.
+Cookies HttpOnly, Secure en production, origine autorisée, limitation d'essais persistante compatible déploiement, erreurs de récupération non révélatrices et jetons expirables. Resend est requis pour le reset en production ; en développement, sans clé, les emails sont écrits dans `.data/outbox`. Inscription personnelle possible immédiatement ; une adresse doit être vérifiée avant d'accepter une invitation associée à cette adresse. L'inscription publique peut être désactivée pour un auto-hébergement privé après création de l'administrateur.
 
 L'autorisation s'applique à chaque lecture et mutation, y compris recherche, export, téléchargement, historique, liens et suggestions. Un ID n'est jamais une preuve d'accès. Les clauses workspace sont obligatoires ; des tests d'isolation utilisent deux espaces et trois rôles. Une mutation revalide l'accès et l'état de corbeille dans sa transaction, avec un ordre de verrouillage partagé avec révocation et déplacement ; une permission vérifiée avant une attente réseau ne suffit pas à autoriser une écriture tardive.
 
@@ -178,7 +178,7 @@ Phase 2 : relations bidirectionnelles, rollups, moteur de formules parsé/interp
 | Bases | Propriétés typées, table/board/liste/galerie, tri/filtre, CSV | Calendrier si non livré V1, relations, rollups, formules, timeline, agrégats, vues liées | Graphiques, formulaires, dashboards, feed, map, multisource |
 | Collaboration | Invitations et permissions, édition asynchrone avec conflits | Commentaires, mentions, notifications par rechargement | Temps réel uniquement après nouvelle décision explicite |
 | Publication | Export portable Markdown/JSON/CSV | Pages publiques, liens révocables, sites simples | Domaines personnalisés et publication avancée |
-| Intégrations | Fichiers et SMTP auto-hébergés | API publique, webhooks, imports Notion ZIP avec rapport de pertes | Automatisations, connecteurs et agents externes |
+| Intégrations | Fichiers auto-hébergés et Resend pour les emails | API publique, webhooks, imports Notion ZIP avec rapport de pertes | Automatisations, connecteurs et agents externes |
 | Plateformes | Web responsive | PWA et récupération de brouillons renforcée | Offline complet, apps natives, Mail/Calendar comme produits séparés |
 | Administration | Membres, rôles, sauvegarde/restauration | Journal d'audit, quotas, rétention configurable | Administration entreprise, SSO/SCIM si demandé |
 
@@ -207,7 +207,7 @@ Playwright : Chromium pour chaque changement, puis Firefox/WebKit sur éditeur/a
 
 Uploads : taille/MIME contrôlés, HTML actif exclu, téléchargement privé autorisé à chaque accès, URLs externes et embeds limités ; aucun fetch arbitraire du serveur vers une URL utilisateur. Index/recherche/publication appliquent les mêmes droits que les pages. Les journaux excluent contenu des pages, secrets, mots de passe et jetons.
 
-Docker Compose local : app, PostgreSQL, Mailpit et volume d'assets. Prod mono-instance possible avec volumes sauvegardés ; avant plusieurs replicas, stockage partagé et limitation de requêtes partagée, sessions/receipts persistants. Migrations Drizzle générées, inspectées et appliquées une fois par release. Séparer migration de démarrage web. Backup quotidien base + assets ; exercice de restauration mensuel ; cibles initiales RPO 24 h / RTO 4 h à vérifier, puis PITR selon besoin. Un restaurateur doit pouvoir revenir à la version applicative compatible avec le schéma.
+Docker Compose local : app, PostgreSQL et volume d'assets ; emails en boîte d'envoi locale sans Resend. Prod mono-instance possible avec volumes sauvegardés ; avant plusieurs replicas, stockage partagé et limitation de requêtes partagée, sessions/receipts persistants. Migrations Drizzle générées, inspectées et appliquées une fois par release. Séparer migration de démarrage web. Backup quotidien base + assets ; exercice de restauration mensuel ; cibles initiales RPO 24 h / RTO 4 h à vérifier, puis PITR selon besoin. Un restaurateur doit pouvoir revenir à la version applicative compatible avec le schéma.
 
 ## 10. Condition de fin
 

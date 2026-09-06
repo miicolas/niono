@@ -1,16 +1,17 @@
-import { beforeAll, expect, test } from "vitest";
-import { auth } from "../packages/server/src/auth";
-import * as pages from "../packages/server/src/pages";
-import * as databases from "../packages/server/src/databases";
-import * as workspaces from "../packages/server/src/workspaces";
-import { storeAsset, readAsset } from "../packages/server/src/assets";
-import { db, schema as s } from "../packages/db/src";
 import { eq } from "drizzle-orm";
+import { beforeAll, expect, test } from "vitest";
+import { auth } from "@/auth";
+import { db, schema as s } from "@/db";
+import { readAsset, storeAsset } from "@/server/services/assets";
+import * as databases from "@/server/services/databases";
+import * as pages from "@/server/services/pages";
+import * as workspaces from "@/server/services/workspaces";
 import {
+  type DocumentNode,
   documentSchema,
   viewSchema,
-  type DocumentNode,
-} from "../packages/contracts/src";
+} from "@/validators/contracts";
+
 let owner: string, editor: string, viewer: string, workspaceId: string;
 const content = (text: string): DocumentNode => ({
   type: "doc",
@@ -28,8 +29,8 @@ beforeAll(async () => {
               password: "Test-password-812!",
             },
           })
-        ).user.id,
-    ),
+        ).user.id
+    )
   );
   [owner, editor, viewer] = ids as [string, string, string];
   workspaceId = (await pages.createWorkspace(owner, "Test contenu")).id;
@@ -64,7 +65,7 @@ test("une seule sauvegarde concurrente réussit et un retry est idempotent", asy
       revision: 1,
     });
     await expect(
-      pages.saveDocument(owner, { ...input, content: content("Changé") }),
+      pages.saveDocument(owner, { ...input, content: content("Changé") })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   }
 });
@@ -79,14 +80,14 @@ test("la corbeille masque le sous-arbre, la restauration le récupère, les cycl
     title: "Enfant",
   });
   await expect(
-    pages.movePage(owner, { id: parent.id, parentId: child.id }),
+    pages.movePage(owner, { id: parent.id, parentId: child.id })
   ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   await pages.trashPage(owner, parent.id);
   await expect(pages.getPage(owner, child.id)).rejects.toMatchObject({
     code: "NOT_FOUND",
   });
   expect(
-    (await pages.listPages(owner, workspaceId)).some((p) => p.id === child.id),
+    (await pages.listPages(owner, workspaceId)).some((p) => p.id === child.id)
   ).toBe(false);
   await pages.trashPage(owner, parent.id, true);
   expect((await pages.getPage(owner, child.id)).page.parentId).toBe(parent.id);
@@ -104,7 +105,7 @@ test("un lecteur ne peut pas modifier et une restriction s’hérite dans le sou
       expectedRevision: 0,
       mutationId: crypto.randomUUID(),
       content: content("x"),
-    }),
+    })
   ).rejects.toMatchObject({ code: "FORBIDDEN" });
   await workspaces.sharePage(owner, {
     pageId: parent.id,
@@ -115,7 +116,7 @@ test("un lecteur ne peut pas modifier et une restriction s’hérite dans le sou
     code: "NOT_FOUND",
   });
   expect(await pages.searchPages(viewer, workspaceId, "Secretunique")).toEqual(
-    [],
+    []
   );
   expect((await pages.getPage(editor, child.id)).canEdit).toBe(false);
   await expect(pages.trashPage(editor, child.id)).rejects.toMatchObject({
@@ -169,7 +170,7 @@ test("les valeurs numériques se trient numériquement et les cellules concurren
       propertyId: amount.id,
       value: "100",
       expectedRevision: 1,
-    }),
+    })
   ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   await expect(
     databases.updateCell(owner, {
@@ -177,7 +178,7 @@ test("les valeurs numériques se trient numériquement et les cellules concurren
       propertyId: amount.id,
       value: 100,
       expectedRevision: 0,
-    }),
+    })
   ).rejects.toMatchObject({ code: "CONFLICT" });
   const result = await databases.queryEntries(owner, {
     pageId: base.id,
@@ -203,7 +204,7 @@ test("les fichiers suivent les permissions de leur page et ne font pas confiance
     owner,
     page.id,
     "../../image.svg",
-    new TextEncoder().encode('<svg onload="alert(1)"></svg>'),
+    new TextEncoder().encode('<svg onload="alert(1)"></svg>')
   );
   expect(stored.mime).toBe("application/octet-stream");
   await workspaces.sharePage(owner, {
@@ -221,13 +222,14 @@ test("les documents dangereux ou trop profonds sont refusés", () => {
     documentSchema.safeParse({
       type: "doc",
       content: [{ type: "image", attrs: { src: "javascript:alert(1)" } }],
-    }).success,
+    }).success
   ).toBe(false);
   let nested: DocumentNode = { type: "paragraph" };
-  for (let i = 0; i < 35; i++)
+  for (let i = 0; i < 35; i++) {
     nested = { type: "blockquote", content: [nested] };
+  }
   expect(
-    documentSchema.safeParse({ type: "doc", content: [nested] }).success,
+    documentSchema.safeParse({ type: "doc", content: [nested] }).success
   ).toBe(false);
 });
 test("dupliquer une base recopie ses entrées et ses valeurs sans partager leurs identifiants", async () => {
@@ -260,7 +262,7 @@ test("dupliquer une base recopie ses entrées et ses valeurs sans partager leurs
   expect(rows.rows[0]?.title).toBe("Lancement");
   expect(rows.rows[0]?.id).not.toBe(entry.id);
   expect(rows.rows[0]?.values[copied.properties[0]!.id]?.value).toBe(
-    "progress",
+    "progress"
   );
 });
 
@@ -276,7 +278,7 @@ test("restaurer une sous-page privée ne publie pas son contenu et déplacer exi
     grants: [],
   });
   await expect(
-    pages.movePage(owner, { id: child.id, parentId: null }),
+    pages.movePage(owner, { id: child.id, parentId: null })
   ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
   await pages.trashPage(owner, parent.id);
   await expect(pages.trashPage(owner, child.id, true)).rejects.toMatchObject({
@@ -332,8 +334,12 @@ test("les filtres de sélection multiple distinguent une cellule vide et un choi
 });
 
 test("un export de sous-arbre se réimporte une fois avec ses fichiers et références remappés", async () => {
-  const { exportArchive, importArchive } =
-    await import("../packages/server/src/transfer");
+  const { exportArchive } = await import(
+    "@/server/services/transfer/export-archive"
+  );
+  const { importArchive } = await import(
+    "@/server/services/transfer/import-archive"
+  );
   const root = await pages.createPage(owner, {
     workspaceId,
     title: "Archive é 🌿",
@@ -347,7 +353,7 @@ test("un export de sous-arbre se réimporte une fois avec ses fichiers et réfé
     owner,
     child.id,
     "note.txt",
-    new TextEncoder().encode("Portable"),
+    new TextEncoder().encode("Portable")
   );
   await pages.saveDocument(owner, {
     pageId: child.id,
@@ -373,7 +379,7 @@ test("un export de sous-arbre se réimporte une fois avec ses fichiers et réfé
   const url = String(document.document.content.content![0]!.attrs!.href);
   expect(url).not.toBe(asset.url);
   expect((await readAsset(owner, url.slice(12))).bytes.toString()).toBe(
-    "Portable",
+    "Portable"
   );
 });
 
@@ -404,7 +410,7 @@ test("le calendrier et les colonnes filtrent avant de paginer la source", async 
         createdBy: owner,
         title: `Entrée ${i}`,
         position: i,
-      })),
+      }))
     )
     .returning();
   await db.insert(s.entries).values(
@@ -412,7 +418,7 @@ test("le calendrier et les colonnes filtrent avant de paginer la source", async 
       sourceId: source.id,
       pageId: p.id,
       position: i,
-    })),
+    }))
   );
   await db.insert(s.values).values(
     inserted.flatMap((p, i) => [
@@ -426,7 +432,7 @@ test("le calendrier et les colonnes filtrent avant de paginer la source", async 
         propertyId: date.id,
         textValue: i === 60 ? "2026-09-15" : "2026-08-15",
       },
-    ]),
+    ])
   );
   const config = viewSchema.parse({ layout: "calendar" });
   const calendar = await databases.queryEntries(owner, {
@@ -465,7 +471,9 @@ test("le calendrier et les colonnes filtrent avant de paginer la source", async 
 });
 
 test("les archives profondes sont rejetées et une ascendance tronquée ne donne aucun accès", async () => {
-  const { importArchive } = await import("../packages/server/src/transfer");
+  const { importArchive } = await import(
+    "@/server/services/transfer/import-archive"
+  );
   const ids = Array.from({ length: 32 }, () => crypto.randomUUID());
   const archive = {
     format: "digipm-archive" as const,
@@ -493,9 +501,9 @@ test("les archives profondes sont rejetées et une ascendance tronquée ne donne
       workspaceId,
       importId: crypto.randomUUID(),
       archive,
-    }),
+    })
   ).rejects.toMatchObject({ code: "BAD_REQUEST" });
-  for (const [i, id] of ids.entries())
+  for (const [i, id] of ids.entries()) {
     await db.insert(s.pages).values({
       id,
       workspaceId,
@@ -504,6 +512,7 @@ test("les archives profondes sont rejetées et une ascendance tronquée ne donne
       createdBy: owner,
       privateRoot: i === 0,
     });
+  }
   await expect(pages.getPage(viewer, ids[31]!)).rejects.toMatchObject({
     code: "NOT_FOUND",
   });
@@ -526,28 +535,28 @@ test("une invitation exige le bon email vérifié et ne peut pas être rejouée"
     email: invited.email,
     role: "viewer",
     tokenHash: createHash("sha256").update(token).digest("hex"),
-    expiresAt: new Date(Date.now() + 60000),
+    expiresAt: new Date(Date.now() + 60_000),
   });
   await expect(workspaces.acceptInvitation(owner, token)).rejects.toMatchObject(
-    { code: "NOT_FOUND" },
+    { code: "NOT_FOUND" }
   );
   await expect(
-    workspaces.acceptInvitation(invited.id, token),
+    workspaces.acceptInvitation(invited.id, token)
   ).rejects.toMatchObject({ code: "FORBIDDEN" });
   await db
     .update(s.user)
     .set({ emailVerified: true })
     .where(eq(s.user.id, invited.id));
   await expect(workspaces.acceptInvitation(invited.id, token)).resolves.toEqual(
-    { workspaceId },
+    { workspaceId }
   );
   await expect(
-    workspaces.acceptInvitation(invited.id, token),
+    workspaces.acceptInvitation(invited.id, token)
   ).rejects.toMatchObject({ code: "NOT_FOUND" });
   expect(
     (await workspaces.workspaceMembers(owner, workspaceId)).find(
-      (m) => m.id === invited.id,
-    )?.role,
+      (m) => m.id === invited.id
+    )?.role
   ).toBe("viewer");
 });
 
@@ -569,14 +578,18 @@ test("la confirmation du déplacement refuse une audience qui a changé", async 
       parentId: null,
       confirmAudienceChange: true,
       confirmedAudience: preview.audience.slice(1),
-    }),
+    })
   ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
   expect((await pages.getPage(owner, child.id)).page.parentId).toBe(parent.id);
 });
 
 test("une archive sans fichiers reste importable et les références de fichiers restent attachées à leur entrée", async () => {
-  const { exportArchive, importArchive } =
-    await import("../packages/server/src/transfer");
+  const { exportArchive } = await import(
+    "@/server/services/transfer/export-archive"
+  );
+  const { importArchive } = await import(
+    "@/server/services/transfer/import-archive"
+  );
   const base = await pages.createPage(owner, { workspaceId, kind: "database" });
   const entry = await databases.addEntry(owner, {
     pageId: base.id,
@@ -596,7 +609,7 @@ test("une archive sans fichiers reste importable et les références de fichiers
     owner,
     entry.id,
     "note.txt",
-    Buffer.from("Bonjour"),
+    Buffer.from("Bonjour")
   );
   await databases.updateCell(owner, {
     pageId: entry.id,
@@ -606,7 +619,7 @@ test("une archive sans fichiers reste importable et les références de fichiers
   });
   const portable = await exportArchive(owner, base.id, false);
   expect(
-    portable.values.find((v) => v.propertyId === property.id)?.value,
+    portable.values.find((v) => v.propertyId === property.id)?.value
   ).toEqual([]);
   expect(portable.warnings.length).toBeGreaterThan(0);
   await expect(
@@ -614,7 +627,7 @@ test("une archive sans fichiers reste importable et les références de fichiers
       workspaceId,
       importId: crypto.randomUUID(),
       archive: portable,
-    }),
+    })
   ).resolves.toHaveProperty("pageIds");
   const tampered = await exportArchive(owner, base.id, true);
   tampered.assets[0]!.pageId = other.id;
@@ -623,6 +636,6 @@ test("une archive sans fichiers reste importable et les références de fichiers
       workspaceId,
       importId: crypto.randomUUID(),
       archive: tampered,
-    }),
+    })
   ).rejects.toMatchObject({ code: "NOT_FOUND" });
 });

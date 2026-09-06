@@ -10,5 +10,7 @@ dist/
 coverage/
 test-results/
 playwright-report/
+*.tsbuildinfo
+bun.lockb
 .DS_Store
 *.log

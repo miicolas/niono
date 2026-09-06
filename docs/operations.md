@@ -4,20 +4,20 @@
 
 `BETTER_AUTH_URL` doit être l’origine exacte de l’application ; oRPC et les uploads rejettent les autres origines. Utiliser HTTPS derrière un reverse proxy en production. Le proxy doit conserver les en-têtes d’origine et accepter les uploads jusqu’à 20 Mio. Les archives JSON sont limitées à 16 Mio et 200 pages ; les documents à 2 Mio. Aucun bucket public ni serveur WebSocket n’est requis.
 
-Les secrets restent dans un fichier privé ignoré par Git. Utiliser des mots de passe PostgreSQL hexadécimaux pour éviter les ambiguïtés d’encodage dans l’URL de connexion. Configurez SMTP_HOST/PORT/FROM et, si nécessaire, SMTP_USER/PASSWORD/SECURE. Le port 465 utilise `SMTP_SECURE=true` ; le port 587 utilise STARTTLS avec `false`. Mailpit est réservé au développement.
+Les secrets restent dans un fichier privé ignoré par Git. Utiliser des mots de passe PostgreSQL hexadécimaux pour éviter les ambiguïtés d’encodage dans l’URL de connexion. Les emails (réinitialisation, vérification d’adresse, invitations) partent par [Resend](https://resend.com). Configurez `RESEND_API_KEY` et `EMAIL_FROM` ; l’expéditeur doit appartenir à un domaine vérifié dans Resend, sinon l’API refuse l’envoi. Sans clé, l’application refuse de démarrer un envoi en production ; en développement elle écrit chaque email dans `EMAIL_OUTBOX_DIR` (`.data/outbox` par défaut) et journalise le sujet, le destinataire et le fichier.
 
 Les inscriptions sont publiques dans cette version. Les invitations nécessitent une adresse vérifiée et conforme à leur destinataire. Les pages privées restent inaccessibles à l’administrateur s’il n’en est ni créateur ni bénéficiaire explicite.
 
 ## Image et migrations
 
-Préparer `.env.production` avec POSTGRES_PASSWORD, BETTER_AUTH_SECRET, BETTER_AUTH_URL et les paramètres SMTP. PORT vaut 3000 par défaut.
+Préparer `.env.production` avec POSTGRES_PASSWORD, BETTER_AUTH_SECRET, BETTER_AUTH_URL, RESEND_API_KEY et EMAIL_FROM. PORT vaut 3000 par défaut.
 
 ```sh
 docker compose --env-file .env.production -f compose.production.yaml up -d --build
 docker compose --env-file .env.production -f compose.production.yaml ps
 ```
 
-Le service `migrate` doit finir avec le code 0, puis `app` devenir healthy. `/api/health` teste également PostgreSQL. Les volumes `postgres_data` et `assets_data` conservent les données. Le port HTTP est lié à 127.0.0.1 ; le reverse proxy expose le service. Ne pas utiliser `down -v` sur une installation à conserver.
+Le service `app` applique les migrations au démarrage (script `migrate/migrate.mjs` inclus dans l’image) puis devient healthy ; il s’arrête en erreur si une migration échoue. `/api/health` teste également PostgreSQL. Les volumes `postgres_data` et `assets_data` conservent les données. Le port HTTP est lié à 127.0.0.1 ; le reverse proxy expose le service. Ne pas utiliser `down -v` sur une installation à conserver.
 
 Pour une mise à jour, sauvegarder, reconstruire et appliquer les migrations, puis tester inscription/connexion, accès à une page et upload. Le downgrade du code seul ne garantit pas la compatibilité avec un schéma migré. Conserver image et sauvegarde correspondantes.
 
@@ -52,4 +52,4 @@ Créer une installation Compose distincte (`-p digipm-restore`) avec d’autres 
 
 Stockage local, prévu pour une seule instance web. Pour plusieurs replicas, fournir un stockage partagé avant de répartir le trafic. Pas de suppression définitive ni rétention automatique ; les anciennes versions, reçus de sauvegarde et fichiers non référencés occupent donc de l’espace. Surveiller les volumes. L’API journalise méthode, statut, durée et identifiant de requête si LOG_REQUESTS=true, sans document ni secret.
 
-L’IA est facultative : `AI_BASE_URL` est une URL administrateur de service compatible Chat Completions, `AI_MODEL` le nom du modèle et `AI_API_KEY` sa clé éventuelle. Seul le texte explicitement sélectionné est envoyé après l’action utilisateur. Aucun service IA n’est provisionné et aucune génération n’a été validée sans fournisseur configuré.
+L’IA est facultative et passe par le Vercel AI SDK. `AI_MODEL` désigne le modèle ; sans `AI_BASE_URL`, il est résolu par le Vercel AI Gateway (format `fournisseur/modèle`, par exemple `openai/gpt-5.1`) avec `AI_GATEWAY_API_KEY`. Pour un service compatible OpenAI, définir `AI_BASE_URL` (préfixe `/v1`) et éventuellement `AI_API_KEY`. Seul le texte explicitement sélectionné est envoyé après l’action utilisateur. Aucun service IA n’est provisionné et aucune génération n’a été validée sans fournisseur configuré.

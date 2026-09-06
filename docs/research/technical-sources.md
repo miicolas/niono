@@ -16,7 +16,11 @@ Recherche effectuée le **2026-09-06**, uniquement dans les documentations et d�
 
 **Fait vérifié.** Better Auth active ce mode avec `emailAndPassword.enabled: true`. Son client expose inscription et connexion par email ; vérification d'adresse et réinitialisation du mot de passe disposent de points d'intégration pour l'envoi d'emails. [Email et mot de passe](https://better-auth.com/docs/authentication/email-password), [utilisation du client](https://better-auth.com/docs/basic-usage).
 
-**Décision.** Inscription, connexion, déconnexion, session et récupération du mot de passe suffisent. Prévoir un serveur email de développement puis un transport de production configurable. Pas de fournisseur OAuth, passkey, SSO ni MFA en V1.
+**Décision.** Inscription, connexion, déconnexion, session et récupération du mot de passe suffisent. Pas de fournisseur OAuth, passkey, SSO ni MFA en V1.
+
+**Fait vérifié.** Le SDK Resend expose `resend.emails.send({ from, to, subject, text })` et renvoie `{ data, error }` sans lever d’exception ; l’expéditeur doit appartenir à un domaine vérifié. [Envoi d’email](https://resend.com/docs/api-reference/emails/send-email), [SDK Node](https://resend.com/docs/send-with-nodejs).
+
+**Décision.** Les envois Better Auth (`sendResetPassword`, `sendVerificationEmail`) et les invitations passent par un seul adaptateur `sendEmail` branché sur Resend. Sans `RESEND_API_KEY`, l’adaptateur écrit les emails sur disque en développement et refuse l’envoi en production.
 
 **Fait vérifié.** Le guide Start monte `auth.handler(request)` en GET et POST sur `/api/auth/$`, recommande le SDK client et documente `tanstackStartCookies` depuis `better-auth/tanstack-start` comme dernier plugin pour les appels serveur qui écrivent des cookies. La session serveur se lit avec les headers de la requête. [Intégration Better Auth–Start](https://better-auth.com/docs/integrations/tanstack).
 

@@ -1,13 +1,13 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from "vite";
 
-import { tanstackStart } from '@tanstack/react-start/plugin/vite'
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 
-import viteReact from '@vitejs/plugin-react'
-import { nitro } from 'nitro/vite'
-import tailwindcss from '@tailwindcss/vite'
+import viteReact from "@vitejs/plugin-react";
+import { nitro } from "nitro/vite";
+import tailwindcss from "@tailwindcss/vite";
 
 const config = defineConfig({
-  resolve: { tsconfigPaths: true },
+  resolve: { tsconfigPaths: true, dedupe: ["react", "react-dom"] },
   plugins: [
     tailwindcss(),
     nitro({ rollupConfig: { external: [/^@sentry\//] } }),
@@ -15,6 +15,6 @@ const config = defineConfig({
     tanstackStart(),
     viteReact(),
   ],
-})
+});
 
-export default config
+export default config;

@@ -1,0 +1,4 @@
+CREATE INDEX "entries_source_position_idx" ON "database_entries" USING btree ("source_id","position","page_id");--> statement-breakpoint
+CREATE INDEX "properties_source_idx" ON "property_definitions" USING btree ("source_id");--> statement-breakpoint
+ALTER TABLE "property_values" ADD CONSTRAINT "property_value_single_type" CHECK (num_nonnulls("property_values"."text_value","property_values"."number_value","property_values"."bool_value","property_values"."array_value") <= 1);--> statement-breakpoint
+ALTER TABLE "property_values" ADD CONSTRAINT "property_value_array" CHECK ("property_values"."array_value" IS NULL OR jsonb_typeof("property_values"."array_value") = 'array');

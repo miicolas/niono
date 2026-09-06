@@ -4,7 +4,7 @@
 
 **Blocked by:** 12, 15, 19
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 ## Critères d'acceptation
 
@@ -13,3 +13,7 @@
 - [ ] Formules CSV potentiellement exécutables neutralisées selon mode d'export documenté.
 - [ ] Tests arborescence, caractères Unicode, propriétés multiples et contenu interdit absent.
 
+
+## État constaté
+
+Implémentation et vérifications décrites dans [le rapport de livraison](../../../docs/validation/delivery.md). Les critères non cochés restent à vérifier ou à compléter ; la présence du code ne vaut pas validation de tous les cas.

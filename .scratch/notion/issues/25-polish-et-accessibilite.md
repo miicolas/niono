@@ -4,7 +4,7 @@
 
 **Blocked by:** 06, 08, 10, 12, 15, 20, 21, 22, 24
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 ## Critères d'acceptation
 
@@ -14,3 +14,7 @@
 - [ ] Tests IME, sélection, paste et drag sur Chromium/Firefox/WebKit ; aucune animation de frappe.
 - [ ] Les écarts aux références sont documentés ; aucun label de parité totale injustifié.
 
+
+## État constaté
+
+Implémentation et vérifications décrites dans [le rapport de livraison](../../../docs/validation/delivery.md). Les critères non cochés restent à vérifier ou à compléter ; la présence du code ne vaut pas validation de tous les cas.

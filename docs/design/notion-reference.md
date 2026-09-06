@@ -83,3 +83,9 @@ Le caractère papier repose sur la couleur, l'espace et la typographie. Pas de t
 Mobile : sidebar en panneau modal, actions tactiles explicites plutôt que hover requis, header réduit, menus adaptés à l'écran et tables à défilement horizontal. Aucun composant métier ne dépend d'un drag pour être utilisable.
 
 La validation visuelle compare l'implémentation aux références de disposition ci-dessus, avec contenu synthétique et états déterministes. L'objectif est la fidélité des interactions et des proportions dans les contraintes choisies ; ne pas annoncer une fidélité pixel-perfect tant qu'elle n'a pas été mesurée.
+
+## Référence prioritaire ajoutée pendant l’implémentation
+
+L’utilisateur a ensuite précisé la [démo sombre Tiptap Notion-like](https://template.tiptap.dev/notion-like/dHRCN8qfdP?mode=dark), le [template](https://tiptap.dev/docs/ui-components/templates/notion-like-editor), le [bouton AI Ask](https://tiptap.dev/docs/ui-components/components/ai-ask-button) et [l’inventaire des composants](https://tiptap.dev/docs/ui-components/components/overview). Cette direction sombre prime sur le thème papier initial, qui reste une préférence disponible.
+
+Le template commercial n’est pas redistribué. L’implémentation possède ses propres menus slash, barre de sélection, palette, panneau IA facultatif et poignées, construits sur les extensions open source Tiptap. Les captures du résultat sont dans `docs/validation/screenshots/`. La fidélité générale a été inspectée, sans mesure de conformité pixel à pixel.

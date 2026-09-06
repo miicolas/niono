@@ -62,7 +62,9 @@ type Props = {
   pages: PageItem[];
   onRefresh: () => Promise<void>;
   onNavigate: (id: string) => void;
-  beforeLeave: MutableRefObject<null | (() => Promise<boolean>)>;
+  beforeLeave: MutableRefObject<
+    null | ((requireSaved?: boolean) => Promise<boolean>)
+  >;
   onAction: (action: string) => void;
 };
 export function PageView(props: Props) {
@@ -70,6 +72,8 @@ export function PageView(props: Props) {
     queryKey: ["page", props.pageId],
     queryFn: () => client.pages.get({ id: props.pageId }),
     staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
   });
   const [epoch, setEpoch] = useState(0);
   if (query.isPending)
@@ -138,31 +142,49 @@ function LoadedPage({
     enabled: panel === "share",
   });
   const cache = useQueryClient();
-  const metadataRef=useRef(metadata);const metadataQueue=useRef(Promise.resolve(true));
+  const metadataRef = useRef(metadata);
+  useEffect(() => {
+    if (page.revision <= metadataRef.current.revision) return;
+    const previous = metadataRef.current;
+    metadataRef.current = page;
+    setMetadata(page);
+    setTitle((value) => (value === previous.title ? page.title : value));
+    setIcon(page.icon);
+  }, [page]);
+  const metadataQueue = useRef(Promise.resolve(true));
   const update = (
     changes: Partial<
       Pick<typeof page, "title" | "icon" | "cover" | "coverPosition">
     >,
   ) => {
-    metadataQueue.current=metadataQueue.current.then(async()=>{
-    try {
-      if(Object.entries(changes).every(([key,value])=>metadataRef.current[key as keyof typeof metadata]===value))return true;
-      const result = await client.pages.update({
-        id: page.id,
-        expectedRevision: metadataRef.current.revision,
-        ...changes,
-      });
-      metadataRef.current=result;
-      setMetadata(result);
-      await props.onRefresh();
-      return true;
-    } catch (e) {
-      reportError(e);
-      return false;
-    }});return metadataQueue.current;
+    metadataQueue.current = metadataQueue.current.then(async () => {
+      try {
+        if (
+          Object.entries(changes).every(
+            ([key, value]) =>
+              metadataRef.current[key as keyof typeof metadata] === value,
+          )
+        )
+          return true;
+        const result = await client.pages.update({
+          id: page.id,
+          expectedRevision: metadataRef.current.revision,
+          ...changes,
+        });
+        metadataRef.current = result;
+        setMetadata(result);
+        await props.onRefresh();
+        return true;
+      } catch (e) {
+        reportError(e);
+        await cache.invalidateQueries({ queryKey: ["page", page.id] });
+        return false;
+      }
+    });
+    return metadataQueue.current;
   };
   useEffect(() => {
-    props.beforeLeave.current = async () => {
+    props.beforeLeave.current = async (requireSaved) => {
       if (
         title !== metadata.title &&
         !(await update({ title: title.trim() || "Sans titre" }))
@@ -170,6 +192,14 @@ function LoadedPage({
         return false;
       await save.flush();
       if (!save.dirty()) return true;
+      if (requireSaved) {
+        reportError(
+          new Error(
+            "Enregistrez ou résolvez le conflit avant de dupliquer cette page.",
+          ),
+        );
+        return false;
+      }
       return new Promise<boolean>((resolve) => setLeaveResolve(() => resolve));
     };
     return () => {
@@ -234,6 +264,37 @@ function LoadedPage({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={async () => {
+                try {
+                  await save.flush();
+                  if (save.dirty())
+                    throw new Error(
+                      "Enregistrez le brouillon avant d’exporter l’archive.",
+                    );
+                  await save.flush();
+                  if (save.dirty())
+                    throw new Error(
+                      "Enregistrez ou résolvez le conflit avant d’exporter l’archive.",
+                    );
+                  const archive = await client.transfer.export({
+                    pageId: page.id,
+                    includeAssets: true,
+                  });
+                  download(
+                    `${title}-archive.json`,
+                    JSON.stringify(archive, null, 2),
+                    "application/json",
+                  );
+                } catch (error) {
+                  reportError(error);
+                }
+              }}
+            >
+              <FileDown />
+              Exporter la page et ses sous-pages
+            </DropdownMenuItem>
+
             <DropdownMenuItem onClick={() => setPanel("history")}>
               <Clock3 />
               Historique des versions
@@ -339,7 +400,7 @@ function LoadedPage({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => void save.discard()}
+                onClick={() => void save.ignoreRecovered()}
               >
                 Ignorer
               </Button>
@@ -355,6 +416,30 @@ function LoadedPage({
               <Button size="sm" variant="outline" onClick={downloadDraft}>
                 Télécharger mon brouillon
               </Button>
+              {canEdit && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      const copy = await client.pages.create({
+                        workspaceId: props.workspaceId,
+                        parentId: page.id,
+                        title: `${title} — copie`,
+                        icon: metadata.icon,
+                        content: save.latest() ?? document.content,
+                      });
+                      await save.discard();
+                      await props.onRefresh();
+                      props.onNavigate(copy.id);
+                    } catch (error) {
+                      reportError(error);
+                    }
+                  }}
+                >
+                  Créer une sous-page de secours
+                </Button>
+              )}
               {save.status === "error" ? (
                 <Button size="sm" onClick={() => void save.flush()}>
                   Réessayer
@@ -722,7 +807,10 @@ function LoadedPage({
               members={members.data ?? []}
               onDone={async () => {
                 setPanel("none");
-                await onReload();
+                const fresh = await client.pages.get({ id: page.id });
+                metadataRef.current = fresh.page;
+                setMetadata(fresh.page);
+                cache.setQueryData(["page", page.id], fresh);
                 await props.onRefresh();
               }}
             />

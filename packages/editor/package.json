@@ -28,12 +28,12 @@
     "@tiptap/pm": "3.31.3",
     "@tiptap/react": "3.31.3",
     "@tiptap/starter-kit": "3.31.3",
-    "lucide-react": "latest",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "lucide-react": "1.41.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "@types/node": "latest",
-    "@types/react": "latest"
+    "@types/node": "26.4.1",
+    "@types/react": "19.2.18"
   }
 }

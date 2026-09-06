@@ -1,0 +1,1 @@
+CREATE INDEX "pages_parent_idx" ON "pages" USING btree ("parent_id");

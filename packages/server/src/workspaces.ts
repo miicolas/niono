@@ -24,14 +24,12 @@ export async function inviteMember(
   if ((await workspaceRole(db, userId, input.workspaceId)) !== "owner")
     throw new ORPCError("FORBIDDEN");
   const token = randomBytes(32).toString("hex");
-  await db
-    .insert(s.invitations)
-    .values({
-      ...input,
-      email: input.email.toLowerCase(),
-      tokenHash: createHash("sha256").update(token).digest("hex"),
-      expiresAt: new Date(Date.now() + 7 * 86400000),
-    });
+  await db.insert(s.invitations).values({
+    ...input,
+    email: input.email.toLowerCase(),
+    tokenHash: createHash("sha256").update(token).digest("hex"),
+    expiresAt: new Date(Date.now() + 7 * 86400000),
+  });
   await sendEmail(
     input.email,
     "Votre invitation DigiPM",
@@ -41,6 +39,13 @@ export async function inviteMember(
 }
 export async function acceptInvitation(userId: string, token: string) {
   return db.transaction(async (tx) => {
+    const tokenHash = createHash("sha256").update(token).digest("hex");
+    const [target] = await tx
+      .select({ workspaceId: s.invitations.workspaceId })
+      .from(s.invitations)
+      .where(eq(s.invitations.tokenHash, tokenHash));
+    if (!target) throw missing();
+    await lockWorkspace(tx, target.workspaceId);
     const [invitation] = await tx
       .select()
       .from(s.invitations)

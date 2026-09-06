@@ -4,7 +4,7 @@
 
 **Blocked by:** 26
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 ## Critères d'acceptation
 
@@ -14,3 +14,7 @@
 - [ ] README de démarrage, limites, administration, SMTP, sécurité et sauvegardes testé par procédure.
 - [ ] Matrice de parité actualisée avec preuves V1 et lots différés ; aucun temps réel annoncé ou activé.
 
+
+## État constaté
+
+Implémentation et vérifications décrites dans [le rapport de livraison](../../../docs/validation/delivery.md). Les critères non cochés restent à vérifier ou à compléter ; la présence du code ne vaut pas validation de tous les cas.

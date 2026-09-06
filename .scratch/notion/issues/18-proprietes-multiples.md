@@ -4,7 +4,7 @@
 
 **Blocked by:** 17, 11, 14
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 ## Critères d'acceptation
 
@@ -13,3 +13,7 @@
 - [ ] UI shadcn accessible et mutations persistées ; protections de fichier identiques aux pages.
 - [ ] Tests valeurs multiples, option d'une autre source et fichiers inaccessibles.
 
+
+## État constaté
+
+Implémentation et vérifications décrites dans [le rapport de livraison](../../../docs/validation/delivery.md). Les critères non cochés restent à vérifier ou à compléter ; la présence du code ne vaut pas validation de tous les cas.

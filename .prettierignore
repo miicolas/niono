@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+**/.output
+**/dist
+**/.tanstack
+**/routeTree.gen.ts
+.data
+.agents
+.codex
+.scratch
+pnpm-lock.yaml
+packages/db/migrations/meta

@@ -4,7 +4,7 @@
 
 **Blocked by:** 05
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 ## Critères d'acceptation
 
@@ -13,3 +13,7 @@
 - [ ] Navigation clavier, sélection multi-cellule supportée explicitement, copier/coller et undo testés.
 - [ ] Limites pour tableaux excessifs et texte volumineux ; aucune confusion avec une source de données.
 
+
+## État constaté
+
+Implémentation et vérifications décrites dans [le rapport de livraison](../../../docs/validation/delivery.md). Les critères non cochés restent à vérifier ou à compléter ; la présence du code ne vaut pas validation de tous les cas.

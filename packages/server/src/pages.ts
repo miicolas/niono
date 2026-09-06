@@ -9,6 +9,7 @@ import {
   type DocumentNode,
 } from "@digipm/contracts";
 import {
+  audienceChange,
   accessPage,
   workspaceRole,
   withPage,
@@ -106,13 +107,11 @@ async function insertWorkspace(tx: Transaction, userId: string, name: string) {
       createdBy: userId,
     })
     .returning();
-  await tx
-    .insert(s.documents)
-    .values({
-      pageId: page!.id,
-      content: welcome,
-      plainText: documentText(welcome),
-    });
+  await tx.insert(s.documents).values({
+    pageId: page!.id,
+    content: welcome,
+    plainText: documentText(welcome),
+  });
   return workspace!;
 }
 export async function createWorkspace(userId: string, name: string) {
@@ -176,6 +175,7 @@ export async function listPages(
       updatedAt: s.pages.updatedAt,
       revision: s.pages.revision,
       favorite: s.favorites.pageId,
+      favoritePosition: s.favorites.position,
     })
     .from(s.pages)
     .leftJoin(
@@ -188,7 +188,7 @@ export async function listPages(
         result.rows.map((r) => r.id),
       ),
     )
-    .orderBy(s.pages.position);
+    .orderBy(s.pages.position, s.pages.id);
 }
 export async function getPage(userId: string, pageId: string) {
   const access = await accessPage(db, userId, pageId);
@@ -265,13 +265,11 @@ export async function createPage(
         .from(s.sources)
         .where(eq(s.sources.pageId, input.parentId));
       if (source)
-        await tx
-          .insert(s.entries)
-          .values({
-            sourceId: source.id,
-            pageId: page!.id,
-            position: Date.now(),
-          });
+        await tx.insert(s.entries).values({
+          sourceId: source.id,
+          pageId: page!.id,
+          position: Date.now(),
+        });
     }
     if (input.kind === "database") {
       const [source] = await tx
@@ -288,20 +286,18 @@ export async function createPage(
           { id: "done", name: "Terminé", color: "green" },
         ],
       });
-      await tx
-        .insert(s.views)
-        .values({
-          sourceId: source!.id,
-          name: "Table",
-          config: {
-            layout: "table",
-            sortBy: "position",
-            sortDirection: "asc",
-            hidden: [],
-            filters: [],
-            filterMode: "and",
-          },
-        });
+      await tx.insert(s.views).values({
+        sourceId: source!.id,
+        name: "Table",
+        config: {
+          layout: "table",
+          sortBy: "position",
+          sortDirection: "asc",
+          hidden: [],
+          filters: [],
+          filterMode: "and",
+        },
+      });
     }
     return page!;
   });
@@ -380,14 +376,12 @@ export async function saveDocument(
       .orderBy(desc(s.versions.createdAt))
       .limit(1);
     if (!last || Date.now() - last.createdAt.getTime() > 300000)
-      await tx
-        .insert(s.versions)
-        .values({
-          pageId: input.pageId,
-          content: old.content,
-          revision: old.revision,
-          authorId: userId,
-        });
+      await tx.insert(s.versions).values({
+        pageId: input.pageId,
+        content: old.content,
+        revision: old.revision,
+        authorId: userId,
+      });
     const revision = old.revision + 1;
     await tx
       .update(s.documents)
@@ -402,23 +396,45 @@ export async function saveDocument(
       .update(s.pages)
       .set({ updatedAt: new Date() })
       .where(eq(s.pages.id, input.pageId));
-    await tx
-      .insert(s.receipts)
-      .values({
-        pageId: input.pageId,
-        mutationId: input.mutationId,
-        actorId: userId,
-        hash,
-        revision,
-      });
+    await tx.insert(s.receipts).values({
+      pageId: input.pageId,
+      mutationId: input.mutationId,
+      actorId: userId,
+      hash,
+      revision,
+    });
     return { revision };
   });
 }
 export async function movePage(
   userId: string,
-  input: { id: string; parentId: string | null; beforeId?: string },
+  input: {
+    id: string;
+    parentId: string | null;
+    beforeId?: string;
+    confirmAudienceChange?: boolean;
+    confirmedAudience?: { id: string; access: "read" | "edit" }[];
+  },
 ) {
   return withPage(userId, input.id, async (tx, { page }) => {
+    if (page.parentId !== input.parentId) {
+      const expanded = await audienceChange(tx, page, input.parentId);
+      const audienceKey = (audience: { id: string; access: string }[]) =>
+        audience
+          .map((p) => p.id + ":" + p.access)
+          .sort()
+          .join("|");
+      if (
+        expanded.length &&
+        (!input.confirmAudienceChange ||
+          audienceKey(expanded) !== audienceKey(input.confirmedAudience ?? []))
+      )
+        throw new ORPCError("PRECONDITION_FAILED", {
+          message:
+            "Ce déplacement donne de nouveaux accès. Confirmez les destinataires.",
+          data: { audience: expanded },
+        });
+    }
     const [entry] = await tx
       .select()
       .from(s.entries)
@@ -458,13 +474,11 @@ export async function movePage(
         .from(s.sources)
         .where(eq(s.sources.pageId, input.parentId));
       if (source)
-        await tx
-          .insert(s.entries)
-          .values({
-            pageId: page.id,
-            sourceId: source.id,
-            position: Date.now(),
-          });
+        await tx.insert(s.entries).values({
+          pageId: page.id,
+          sourceId: source.id,
+          position: Date.now(),
+        });
     }
     let position = Date.now();
     if (input.beforeId) {
@@ -474,7 +488,49 @@ export async function movePage(
         before.page.parentId !== input.parentId
       )
         throw missing();
-      position = before.page.position - 0.5;
+      const [previous] = await tx
+        .select({ position: s.pages.position })
+        .from(s.pages)
+        .where(
+          and(
+            eq(s.pages.workspaceId, page.workspaceId),
+            input.parentId
+              ? eq(s.pages.parentId, input.parentId)
+              : sql`${s.pages.parentId} IS NULL`,
+            sql`${s.pages.id} <> ${page.id}`,
+            sql`${s.pages.position} < ${before.page.position}`,
+          ),
+        )
+        .orderBy(desc(s.pages.position))
+        .limit(1);
+      position = previous
+        ? (previous.position + before.page.position) / 2
+        : before.page.position - 1024;
+      if (
+        position === before.page.position ||
+        position === previous?.position
+      ) {
+        const siblings = await tx
+          .select()
+          .from(s.pages)
+          .where(
+            and(
+              eq(s.pages.workspaceId, page.workspaceId),
+              input.parentId
+                ? eq(s.pages.parentId, input.parentId)
+                : sql`${s.pages.parentId} IS NULL`,
+              sql`${s.pages.id} <> ${page.id}`,
+            ),
+          )
+          .orderBy(s.pages.position, s.pages.id);
+        for (const [index, sibling] of siblings.entries())
+          await tx
+            .update(s.pages)
+            .set({ position: (index + 1) * 1024 })
+            .where(eq(s.pages.id, sibling.id));
+        position =
+          (siblings.findIndex((p) => p.id === input.beforeId) + 1) * 1024 - 512;
+      }
     }
     await tx
       .update(s.pages)
@@ -498,7 +554,10 @@ export async function trashPage(userId: string, id: string, restore = false) {
         try {
           await accessPage(tx, userId, parentId, true);
         } catch {
-          parentId = null;
+          throw new ORPCError("PRECONDITION_FAILED", {
+            message:
+              "Restaurez d’abord la page parente afin de préserver les accès de cette sous-page.",
+          });
         }
       }
       await tx
@@ -564,14 +623,12 @@ export async function restoreVersion(
       .from(s.documents)
       .where(eq(s.documents.pageId, id));
     if (current!.revision !== expectedRevision) throw new ORPCError("CONFLICT");
-    await tx
-      .insert(s.versions)
-      .values({
-        pageId: id,
-        content: current!.content,
-        revision: current!.revision,
-        authorId: userId,
-      });
+    await tx.insert(s.versions).values({
+      pageId: id,
+      content: current!.content,
+      revision: current!.revision,
+      authorId: userId,
+    });
     await tx
       .update(s.documents)
       .set({
@@ -581,6 +638,10 @@ export async function restoreVersion(
         updatedAt: new Date(),
       })
       .where(eq(s.documents.pageId, id));
+    await tx
+      .update(s.pages)
+      .set({ updatedAt: new Date() })
+      .where(eq(s.pages.id, id));
     return { revision: current!.revision + 1 };
   });
 }
@@ -622,32 +683,28 @@ export async function duplicatePage(userId: string, id: string) {
       }) as DocumentNode;
       const newId = mapping.get(row.id)!;
       const coverId = original.cover?.replace("/api/assets/", "");
-      await tx
-        .insert(s.pages)
-        .values({
-          ...original,
-          id: newId,
-          title: row.id === id ? `${original.title} (copie)` : original.title,
-          parentId:
-            row.id === id ? page.parentId : mapping.get(original.parentId!)!,
-          createdBy: userId,
-          privateRoot: original.privateRoot,
-          cover:
-            coverId && assetMapping.has(coverId)
-              ? "/api/assets/" + assetMapping.get(coverId)
-              : original.cover,
-          revision: 0,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          position: Date.now(),
-        });
-      await tx
-        .insert(s.documents)
-        .values({
-          pageId: newId,
-          content: copied,
-          plainText: documentText(copied),
-        });
+      await tx.insert(s.pages).values({
+        ...original,
+        id: newId,
+        title: row.id === id ? `${original.title} (copie)` : original.title,
+        parentId:
+          row.id === id ? page.parentId : mapping.get(original.parentId!)!,
+        createdBy: userId,
+        privateRoot: original.privateRoot,
+        cover:
+          coverId && assetMapping.has(coverId)
+            ? "/api/assets/" + assetMapping.get(coverId)
+            : original.cover,
+        revision: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        position: Date.now(),
+      });
+      await tx.insert(s.documents).values({
+        pageId: newId,
+        content: copied,
+        plainText: documentText(copied),
+      });
       const assets = await tx
         .select()
         .from(s.assets)
@@ -681,24 +738,22 @@ export async function duplicatePage(userId: string, id: string) {
           .from(s.views)
           .where(eq(s.views.sourceId, source.id))) {
           const c = view.config;
-          await tx
-            .insert(s.views)
-            .values({
-              ...view,
-              id: randomUUID(),
-              sourceId,
-              revision: 0,
-              config: {
-                ...c,
-                sortBy: propertyMapping.get(c.sortBy) ?? c.sortBy,
-                groupBy: c.groupBy ? propertyMapping.get(c.groupBy) : undefined,
-                hidden: c.hidden.map((id) => propertyMapping.get(id) ?? id),
-                filters: c.filters.map((f) => ({
-                  ...f,
-                  propertyId: propertyMapping.get(f.propertyId) ?? f.propertyId,
-                })),
-              },
-            });
+          await tx.insert(s.views).values({
+            ...view,
+            id: randomUUID(),
+            sourceId,
+            revision: 0,
+            config: {
+              ...c,
+              sortBy: propertyMapping.get(c.sortBy) ?? c.sortBy,
+              groupBy: c.groupBy ? propertyMapping.get(c.groupBy) : undefined,
+              hidden: c.hidden.map((id) => propertyMapping.get(id) ?? id),
+              filters: c.filters.map((f) => ({
+                ...f,
+                propertyId: propertyMapping.get(f.propertyId) ?? f.propertyId,
+              })),
+            },
+          });
         }
       }
     }
@@ -709,30 +764,23 @@ export async function duplicatePage(userId: string, id: string) {
         .where(eq(s.entries.pageId, row.id));
       if (!entry) continue;
       const newId = mapping.get(row.id)!;
-      await tx
-        .insert(s.entries)
-        .values({
-          ...entry,
-          pageId: newId,
-          sourceId: sourceMapping.get(entry.sourceId) ?? entry.sourceId,
-          position: Date.now(),
-        });
+      await tx.insert(s.entries).values({
+        ...entry,
+        pageId: newId,
+        sourceId: sourceMapping.get(entry.sourceId) ?? entry.sourceId,
+        position: Date.now(),
+      });
       for (const value of await tx
         .select()
         .from(s.values)
         .where(eq(s.values.pageId, row.id)))
-        await tx
-          .insert(s.values)
-          .values({
-            ...value,
-            pageId: newId,
-            propertyId:
-              propertyMapping.get(value.propertyId) ?? value.propertyId,
-            arrayValue: value.arrayValue?.map(
-              (id) => assetMapping.get(id) ?? id,
-            ),
-            revision: 0,
-          });
+        await tx.insert(s.values).values({
+          ...value,
+          pageId: newId,
+          propertyId: propertyMapping.get(value.propertyId) ?? value.propertyId,
+          arrayValue: value.arrayValue?.map((id) => assetMapping.get(id) ?? id),
+          revision: 0,
+        });
     }
     return { id: mapping.get(id)! };
   });
@@ -742,26 +790,84 @@ export async function searchPages(
   workspaceId: string,
   query: string,
 ) {
-  const visible = await listPages(userId, workspaceId);
-  if (!visible.length) return [];
-  const matched = await db
+  await workspaceRole(db, userId, workspaceId);
+  const matched = await db.execute<{
+    id: string;
+    title: string;
+    icon: string;
+    excerpt: string;
+  }>(sql`
+    WITH RECURSIVE visible AS (
+      SELECT p.id,0 depth FROM pages p WHERE p.workspace_id=${workspaceId} AND p.parent_id IS NULL AND p.deleted_at IS NULL AND (NOT p.private_root OR p.created_by=${userId} OR EXISTS(SELECT 1 FROM page_grants g WHERE g.page_id=p.id AND g.user_id=${userId}))
+      UNION ALL SELECT p.id,v.depth+1 FROM pages p JOIN visible v ON p.parent_id=v.id WHERE v.depth<30 AND p.workspace_id=${workspaceId} AND p.deleted_at IS NULL AND (NOT p.private_root OR p.created_by=${userId} OR EXISTS(SELECT 1 FROM page_grants g WHERE g.page_id=p.id AND g.user_id=${userId}))
+    ) SELECT p.id,p.title,p.icon,left(d.plain_text,180) excerpt FROM pages p JOIN page_documents d ON d.page_id=p.id JOIN visible v ON v.id=p.id
+    WHERE p.title ILIKE ${"%" + query.replace(/[%_\\]/g, "\\$&") + "%"} OR to_tsvector('simple',d.plain_text) @@ plainto_tsquery('simple',${query})
+    ORDER BY ts_rank(to_tsvector('simple',d.plain_text),plainto_tsquery('simple',${query})) DESC,p.updated_at DESC,p.id LIMIT 40
+  `);
+  return matched.rows;
+}
+
+export async function previewMove(
+  userId: string,
+  id: string,
+  parentId: string | null,
+) {
+  const { page } = await accessPage(db, userId, id, true);
+  if (parentId) {
+    const target = await accessPage(db, userId, parentId, true);
+    if (target.page.workspaceId !== page.workspaceId) throw missing();
+  }
+  return { audience: await audienceChange(db, page, parentId) };
+}
+
+export async function recentPages(userId: string, workspaceId: string) {
+  await workspaceRole(db, userId, workspaceId);
+  const candidates = await db
     .select({
       id: s.pages.id,
       title: s.pages.title,
       icon: s.pages.icon,
-      excerpt: s.documents.plainText,
+      visitedAt: s.recentPages.visitedAt,
     })
-    .from(s.pages)
-    .innerJoin(s.documents, eq(s.documents.pageId, s.pages.id))
+    .from(s.recentPages)
+    .innerJoin(s.pages, eq(s.pages.id, s.recentPages.pageId))
     .where(
       and(
-        inArray(
-          s.pages.id,
-          visible.map((p) => p.id),
-        ),
-        sql`(${s.pages.title} ILIKE ${"%" + query.replace(/[%_\\]/g, "\\$&") + "%"} OR to_tsvector('simple',${s.documents.plainText}) @@ plainto_tsquery('simple',${query}))`,
+        eq(s.recentPages.userId, userId),
+        eq(s.pages.workspaceId, workspaceId),
       ),
     )
-    .limit(40);
-  return matched.map((p) => ({ ...p, excerpt: p.excerpt.slice(0, 180) }));
+    .orderBy(desc(s.recentPages.visitedAt))
+    .limit(100);
+  const visible: typeof candidates = [];
+  for (const page of candidates) {
+    try {
+      await accessPage(db, userId, page.id);
+      visible.push(page);
+      if (visible.length === 12) break;
+    } catch {
+      /* Revoked or trashed pages are excluded. */
+    }
+  }
+  return visible;
+}
+export async function reorderFavorites(
+  userId: string,
+  workspaceId: string,
+  ids: string[],
+) {
+  return db.transaction(async (tx) => {
+    await lockWorkspace(tx, workspaceId);
+    await workspaceRole(tx, userId, workspaceId);
+    if (new Set(ids).size !== ids.length) throw new ORPCError("BAD_REQUEST");
+    for (const [index, id] of ids.entries()) {
+      const { page } = await accessPage(tx, userId, id);
+      if (page.workspaceId !== workspaceId) throw missing();
+      await tx
+        .update(s.favorites)
+        .set({ position: index * 1024 })
+        .where(and(eq(s.favorites.userId, userId), eq(s.favorites.pageId, id)));
+    }
+    return { ok: true };
+  });
 }

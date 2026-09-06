@@ -4,7 +4,7 @@
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 ## Critères d'acceptation
 
@@ -14,3 +14,7 @@
 - [ ] Recharger, exporter/comparer et enregistrer une copie sont disponibles pour résoudre un conflit ; changement de session ne révèle pas un autre brouillon.
 - [ ] Tests deux clients PostgreSQL, réseau interrompu, réponse tardive, navigation et reconnexion.
 
+
+## État constaté
+
+Implémentation et vérifications décrites dans [le rapport de livraison](../../../docs/validation/delivery.md). Les critères non cochés restent à vérifier ou à compléter ; la présence du code ne vaut pas validation de tous les cas.

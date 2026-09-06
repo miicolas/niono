@@ -4,7 +4,7 @@
 
 **Blocked by:** 07, 05, 15
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 ## Critères d'acceptation
 
@@ -13,3 +13,7 @@
 - [ ] Table minimale TanStack Table avec pagination serveur, droits et données réelles.
 - [ ] Tests invariants entrée/page, copie non implicite, tenant incorrect et rechargement.
 
+
+## État constaté
+
+Implémentation et vérifications décrites dans [le rapport de livraison](../../../docs/validation/delivery.md). Les critères non cochés restent à vérifier ou à compléter ; la présence du code ne vaut pas validation de tous les cas.

@@ -13,6 +13,7 @@ import {
   unique,
   bigint,
   foreignKey,
+  check,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import type {
@@ -140,6 +141,7 @@ export const pages = pgTable(
       columns: [t.workspaceId, t.parentId],
       foreignColumns: [t.workspaceId, t.id],
     }),
+    index("pages_parent_idx").on(t.parentId),
     index("page_tree_idx").on(t.workspaceId, t.parentId, t.position),
   ],
 );
@@ -247,25 +249,35 @@ export const sources = pgTable("data_sources", {
     .notNull()
     .references(() => workspaces.id, { onDelete: "cascade" }),
 });
-export const entries = pgTable("database_entries", {
-  sourceId: uuid("source_id")
-    .notNull()
-    .references(() => sources.id, { onDelete: "cascade" }),
-  pageId: uuid("page_id")
-    .primaryKey()
-    .references(() => pages.id, { onDelete: "cascade" }),
-  position: doublePrecision().default(0).notNull(),
-});
-export const properties = pgTable("property_definitions", {
-  id: uuid().defaultRandom().primaryKey(),
-  sourceId: uuid("source_id")
-    .notNull()
-    .references(() => sources.id, { onDelete: "cascade" }),
-  name: text().notNull(),
-  type: text().$type<PropertyType>().notNull(),
-  options: jsonb().$type<PropertyOption[]>().default([]).notNull(),
-  position: integer().default(0).notNull(),
-});
+export const entries = pgTable(
+  "database_entries",
+  {
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => sources.id, { onDelete: "cascade" }),
+    pageId: uuid("page_id")
+      .primaryKey()
+      .references(() => pages.id, { onDelete: "cascade" }),
+    position: doublePrecision().default(0).notNull(),
+  },
+  (t) => [
+    index("entries_source_position_idx").on(t.sourceId, t.position, t.pageId),
+  ],
+);
+export const properties = pgTable(
+  "property_definitions",
+  {
+    id: uuid().defaultRandom().primaryKey(),
+    sourceId: uuid("source_id")
+      .notNull()
+      .references(() => sources.id, { onDelete: "cascade" }),
+    name: text().notNull(),
+    type: text().$type<PropertyType>().notNull(),
+    options: jsonb().$type<PropertyOption[]>().default([]).notNull(),
+    position: integer().default(0).notNull(),
+  },
+  (t) => [index("properties_source_idx").on(t.sourceId)],
+);
 export const values = pgTable(
   "property_values",
   {
@@ -285,6 +297,14 @@ export const values = pgTable(
     primaryKey({ columns: [t.pageId, t.propertyId] }),
     index().on(t.propertyId, t.textValue),
     index().on(t.propertyId, t.numberValue),
+    check(
+      "property_value_single_type",
+      sql`num_nonnulls(${t.textValue},${t.numberValue},${t.boolValue},${t.arrayValue}) <= 1`,
+    ),
+    check(
+      "property_value_array",
+      sql`${t.arrayValue} IS NULL OR jsonb_typeof(${t.arrayValue}) = 'array'`,
+    ),
   ],
 );
 export const views = pgTable("database_views", {
@@ -307,3 +327,22 @@ export const assets = pgTable("assets", {
   key: text().notNull(),
   ...dates(),
 });
+
+export const importJobs = pgTable(
+  "import_jobs",
+  {
+    id: uuid().notNull(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    hash: text().notNull(),
+    result: jsonb()
+      .$type<{ pageIds: string[]; warnings: string[] }>()
+      .notNull(),
+    ...dates(),
+  },
+  (t) => [primaryKey({ columns: [t.workspaceId, t.userId, t.id] })],
+);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Search,
   Home,
@@ -22,6 +22,7 @@ import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import {
   Sidebar,
+  useSidebar,
   SidebarHeader,
   SidebarContent,
   SidebarRail,
@@ -65,15 +66,35 @@ type Props = {
   onLogout: () => void;
 };
 export function AppSidebar(props: Props) {
-  const setPanel = useUI((s) => s.setPanel);
+  const storePanel = useUI((s) => s.setPanel);
+  const { setOpenMobile } = useSidebar();
+  const setPanel = (panel: Parameters<typeof storePanel>[0]) => {
+    storePanel(panel);
+    setOpenMobile(false);
+  };
+  const navigate = (id: string | null) => {
+    props.onNavigate(id);
+    setOpenMobile(false);
+  };
   const [newWorkspace, setNewWorkspace] = useState(false);
   const [name, setName] = useState("");
   const workspace = props.bootstrap.workspaces.find(
     (w) => w.id === props.workspaceId,
   );
   const isViewer = workspace?.role === "viewer";
-  const roots = props.pages.filter((p) => !p.parentId);
-  const favorites = props.pages.filter((p) => p.favorite);
+  const childrenByParent = useMemo(() => {
+    const map = new Map<string | null, PageItem[]>();
+    for (const page of props.pages) {
+      const siblings = map.get(page.parentId) ?? [];
+      siblings.push(page);
+      map.set(page.parentId, siblings);
+    }
+    return map;
+  }, [props.pages]);
+  const roots = childrenByParent.get(null) ?? [];
+  const favorites = props.pages
+    .filter((p) => p.favorite)
+    .sort((a, b) => (a.favoritePosition ?? 0) - (b.favoritePosition ?? 0));
   return (
     <Sidebar className="workspace-sidebar border-r-0">
       <SidebarHeader>
@@ -90,7 +111,10 @@ export function AppSidebar(props: Props) {
             {props.bootstrap.workspaces.map((w) => (
               <DropdownMenuItem
                 key={w.id}
-                onClick={() => props.onWorkspace(w.id)}
+                onClick={() => {
+                  props.onWorkspace(w.id);
+                  setOpenMobile(false);
+                }}
               >
                 <span className="avatar">{w.name[0]}</span>
                 {w.name}
@@ -114,7 +138,7 @@ export function AppSidebar(props: Props) {
           <SidebarMenuItem>
             <SidebarMenuButton
               isActive={!props.currentId}
-              onClick={() => props.onNavigate(null)}
+              onClick={() => navigate(null)}
             >
               <Home />
               <span>Accueil</span>
@@ -129,9 +153,16 @@ export function AppSidebar(props: Props) {
             <SidebarMenu>
               {favorites.map((page) => (
                 <SidebarMenuItem key={page.id}>
+                  <button
+                    className="favorite-up"
+                    aria-label={`Monter ${page.title} dans les favoris`}
+                    onClick={() => props.onAction("favorite-up", page)}
+                  >
+                    ↑
+                  </button>
                   <SidebarMenuButton
                     isActive={props.currentId === page.id}
-                    onClick={() => props.onNavigate(page.id)}
+                    onClick={() => navigate(page.id)}
                   >
                     <span>{page.icon}</span>
                     <span>{page.title || "Sans titre"}</span>
@@ -173,8 +204,10 @@ export function AppSidebar(props: Props) {
               <TreePage
                 key={page.id}
                 page={page}
+                childrenByParent={childrenByParent}
                 index={index}
                 {...props}
+                onNavigate={navigate}
                 readonly={isViewer}
               />
             ))}
@@ -268,11 +301,17 @@ function TreePage({
   page,
   index,
   readonly,
+  childrenByParent,
   ...props
-}: Props & { page: PageItem; index: number; readonly: boolean }) {
+}: Props & {
+  page: PageItem;
+  index: number;
+  readonly: boolean;
+  childrenByParent: Map<string | null, PageItem[]>;
+}) {
   const expanded = useUI((s) => s.expanded[page.id]);
   const toggle = useUI((s) => s.toggleExpanded);
-  const children = props.pages.filter((p) => p.parentId === page.id);
+  const children = childrenByParent.get(page.id) ?? [];
   const { ref, handleRef, isDragging } = useSortable({
     id: page.id,
     index,
@@ -357,6 +396,7 @@ function TreePage({
             <TreePage
               key={child.id}
               page={child}
+              childrenByParent={childrenByParent}
               index={i}
               {...props}
               readonly={readonly}

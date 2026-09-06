@@ -1,3 +1,4 @@
+import { download } from "@/lib/download";
 import TurndownService from "turndown";
 import { marked } from "marked";
 import { documentSchema, safeUrl, type DocumentNode } from "@digipm/contracts";
@@ -11,7 +12,6 @@ export async function exportMarkdown(
     codeBlockStyle: "fenced",
   });
   const text = `# ${title}\n\n${service.turndown(html)}`;
-  const { download } = await import("@/lib/download");
   download(`${title || "page"}.md`, text, "text/markdown");
 }
 export function parseImportedPage(
@@ -34,7 +34,10 @@ export function parseImportedPage(
   }
   // HTML is parsed in an inert document and converted through an allowlist; no imported markup is mounted.
   const html = marked.parse(text, { async: false });
-  const dom = new DOMParser().parseFromString(html, "text/html");
+  const dom = new DOMParser().parseFromString(
+    html.replace(/<(img|iframe|object|embed)\b[^>]*>/gi, ""),
+    "text/html",
+  );
   function inline(
     node: ChildNode,
     marks: NonNullable<DocumentNode["marks"]> = [],

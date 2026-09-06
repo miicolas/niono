@@ -1,0 +1,28 @@
+{
+  "date": "2026-09-06T18:08:14.582Z",
+  "runtime": "v25.8.0",
+  "fixture": {
+    "pages": 10000,
+    "entries": 100000,
+    "properties": 20,
+    "values": 2000000
+  },
+  "table": {
+    "samples": 20,
+    "p50ms": 4,
+    "p95ms": 6,
+    "maxMs": 6
+  },
+  "filtered": {
+    "samples": 20,
+    "p50ms": 18,
+    "p95ms": 22,
+    "maxMs": 23
+  },
+  "search": {
+    "samples": 20,
+    "p50ms": 324,
+    "p95ms": 379,
+    "maxMs": 403
+  }
+}

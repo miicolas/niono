@@ -10,9 +10,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "zod": "latest"
+    "zod": "4.5.4"
   },
   "devDependencies": {
-    "@types/node": "latest"
+    "@types/node": "26.4.1"
   }
 }

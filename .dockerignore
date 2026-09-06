@@ -1,0 +1,12 @@
+.git
+.agents
+.scratch
+.env
+.env.*
+.data
+**/node_modules
+**/.output
+**/.tanstack
+**/.nitro
+**/dist
+coverage

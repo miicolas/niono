@@ -4,7 +4,7 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 ## Critères d'acceptation
 
@@ -13,3 +13,7 @@
 - [ ] Réponse de sauvegarde n'efface pas les saisies postérieures ; requêtes sérialisées et débounce documenté.
 - [ ] Schéma et tailles validés au serveur, contenu rendu sans HTML actif ; saisie avec accents et composition IME testée.
 
+
+## État constaté
+
+Implémentation et vérifications décrites dans [le rapport de livraison](../../../docs/validation/delivery.md). Les critères non cochés restent à vérifier ou à compléter ; la présence du code ne vaut pas validation de tous les cas.

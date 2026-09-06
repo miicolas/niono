@@ -71,7 +71,9 @@ export type DocumentEditorProps = {
   editable: boolean;
   onChange: (doc: DocumentNode) => void;
   onReady?: (editor: Editor) => void;
-  onUpload: (file: File) => Promise<{ url: string; name: string }>;
+  onUpload: (
+    file: File,
+  ) => Promise<{ url: string; name: string; mime: string }>;
   onAI?: (text: string, instruction: string) => Promise<string>;
   aiAvailable?: boolean;
   onError?: (message: string) => void;
@@ -133,13 +135,19 @@ export function DocumentEditor({
     extensions: [
       StarterKit.configure({
         link: {
-          openOnClick: false,
+          openOnClick: !editable,
           defaultProtocol: "https",
           protocols: ["https", "http", "mailto"],
         },
       }),
       TaskList,
-      TaskItem.configure({ nested: true }),
+      TaskItem.configure({
+        nested: true,
+        a11y: {
+          checkboxLabel: (node) =>
+            `Tâche : ${node.textContent || "sans titre"}`,
+        },
+      }),
       Image.configure({ allowBase64: false }),
       TableKit.configure({ table: { resizable: true } }),
       Placeholder.configure({
@@ -272,15 +280,13 @@ export function DocumentEditor({
     const match = before.match(/^\/([^\n/]*)$/);
     if (match) {
       const pos = e.view.coordsAtPos($from.pos);
-      setSlash((old) => {
-        if (old?.query !== match[1]) setSelected(0);
-        return {
-          query: match[1]!,
-          from: $from.start(),
-          to: $from.pos,
-          x: Math.min(pos.left, window.innerWidth - 295),
-          y: Math.min(pos.bottom + 8, window.innerHeight - 380),
-        };
+      if (slash?.query !== match[1]) setSelected(0);
+      setSlash({
+        query: match[1]!,
+        from: $from.start(),
+        to: $from.pos,
+        x: Math.min(pos.left, window.innerWidth - 295),
+        y: Math.min(pos.bottom + 8, window.innerHeight - 380),
       });
     } else setSlash(null);
   }
@@ -291,7 +297,7 @@ export function DocumentEditor({
     }
   }, [editor]);
   useEffect(() => {
-    editor?.setEditable(editable);
+    editor?.setEditable(editable, false);
   }, [editor, editable]);
   useEffect(() => {
     if (!blockMenu) return;
@@ -304,7 +310,7 @@ export function DocumentEditor({
       if (!editor) return;
       try {
         const result = await onUpload(file);
-        if (file.type.startsWith("image/"))
+        if (result.mime.startsWith("image/"))
           editor
             .chain()
             .focus()
@@ -950,10 +956,17 @@ export function DocumentEditor({
                         editor
                           .chain()
                           .focus()
-                          .insertContent({
-                            type: "paragraph",
-                            content: [{ type: "text", text: ai.result }],
-                          })
+                          .insertContentAt(
+                            editor.state.doc
+                              .resolve(
+                                Math.min(ai.to, editor.state.doc.content.size),
+                              )
+                              .after(1),
+                            {
+                              type: "paragraph",
+                              content: [{ type: "text", text: ai.result }],
+                            },
+                          )
                           .run();
                         setAI(null);
                       }}

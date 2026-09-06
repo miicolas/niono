@@ -32,6 +32,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         },
       ],
     }),
+    errorComponent: () => (
+      <div className="empty-state" role="alert">
+        <h1>Impossible d’afficher cette page</h1>
+        <p>Rechargez l’espace pour retrouver vos contenus.</p>
+        <button onClick={() => window.location.reload()}>
+          Recharger l’espace
+        </button>
+      </div>
+    ),
     shellComponent: RootDocument,
     component: RootComponent,
     notFoundComponent: () => (

@@ -1,3 +1,5 @@
+import { AccountSettings } from "@/features/auth/account-settings";
+import { ImportPanel } from "./import-panel";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search, Trash2, RotateCcw, Plus, FileUp, Mail } from "lucide-react";
@@ -277,6 +279,7 @@ export function WorkspacePanels({
           <nav className="settings-tabs">
             {[
               { id: "general", label: "Préférences" },
+              { id: "account", label: "Mon compte" },
               { id: "members", label: "Membres" },
               { id: "import", label: "Importer" },
             ].map((tab) => (
@@ -336,6 +339,14 @@ export function WorkspacePanels({
                 coupure, votre brouillon reste sur cet appareil.
               </p>
             </>
+          )}
+          {settingsTab === "account" && (
+            <AccountSettings
+              name={bootstrap.user.name}
+              onUpdated={async () => {
+                await cache.invalidateQueries({ queryKey: ["bootstrap"] });
+              }}
+            />
           )}
           {settingsTab === "members" && (
             <>
@@ -423,50 +434,15 @@ export function WorkspacePanels({
               )}
             </>
           )}
-          {settingsTab === "import" && (
-            <>
-              <div className="empty-state py-5">
-                <FileUp size={28} />
-                <h2>Faites venir vos notes</h2>
-                <p>
-                  Markdown, texte ou export JSON DigiPM.
-                  <br />
-                  Jusqu’à 2 Mo par fichier.
-                </p>
-              </div>
-              <Input
-                type="file"
-                aria-label="Importer un document"
-                accept=".md,.markdown,.txt,.json"
-                disabled={!canEdit || busy}
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  setBusy(true);
-                  try {
-                    if (file.size > 2 * 1024 * 1024)
-                      throw new Error("Choisissez un fichier de 2 Mo maximum.");
-                    const imported = parseImportedPage(
-                      file.name,
-                      await file.text(),
-                    );
-                    const page = await client.pages.create({
-                      workspaceId,
-                      ...imported,
-                    });
-                    await onRefresh();
-                    onNavigate(page.id);
-                    close();
-                    toast.success("Page importée");
-                  } catch (error) {
-                    reportError(error);
-                  } finally {
-                    setBusy(false);
-                    e.target.value = "";
-                  }
-                }}
-              />
-            </>
+          {settingsTab === "import" && canEdit && (
+            <ImportPanel
+              workspaceId={workspaceId}
+              onDone={async (id) => {
+                await onRefresh();
+                onNavigate(id);
+                close();
+              }}
+            />
           )}
         </DialogContent>
       </Dialog>

@@ -4,7 +4,7 @@
 
 **Blocked by:** 05, 07
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 ## Critères d'acceptation
 
@@ -13,3 +13,7 @@
 - [ ] Stockage local et interface S3 compatible ; accès privé ou URLs signées courtes contrôlées.
 - [ ] Fichiers orphelins nettoyables, aucun fetch URL arbitraire côté serveur ; tests accès croisé et fichier invalide.
 
+
+## État constaté
+
+Implémentation et vérifications décrites dans [le rapport de livraison](../../../docs/validation/delivery.md). Les critères non cochés restent à vérifier ou à compléter ; la présence du code ne vaut pas validation de tous les cas.

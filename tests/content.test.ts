@@ -263,3 +263,366 @@ test("dupliquer une base recopie ses entrées et ses valeurs sans partager leurs
     "progress",
   );
 });
+
+test("restaurer une sous-page privée ne publie pas son contenu et déplacer exige une confirmation", async () => {
+  const parent = await pages.createPage(owner, { workspaceId });
+  const child = await pages.createPage(owner, {
+    workspaceId,
+    parentId: parent.id,
+  });
+  await workspaces.sharePage(owner, {
+    pageId: parent.id,
+    privateRoot: true,
+    grants: [],
+  });
+  await expect(
+    pages.movePage(owner, { id: child.id, parentId: null }),
+  ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+  await pages.trashPage(owner, parent.id);
+  await expect(pages.trashPage(owner, child.id, true)).rejects.toMatchObject({
+    code: "PRECONDITION_FAILED",
+  });
+  await expect(pages.getPage(viewer, child.id)).rejects.toMatchObject({
+    code: "NOT_FOUND",
+  });
+  await pages.trashPage(owner, parent.id, true);
+  await pages.movePage(owner, {
+    id: child.id,
+    parentId: null,
+    confirmAudienceChange: true,
+    confirmedAudience: (await pages.previewMove(owner, child.id, null))
+      .audience,
+  });
+  expect((await pages.getPage(viewer, child.id)).page.id).toBe(child.id);
+});
+test("les filtres de sélection multiple distinguent une cellule vide et un choix", async () => {
+  const base = await pages.createPage(owner, { workspaceId, kind: "database" });
+  const prop = await databases.addProperty(owner, {
+    pageId: base.id,
+    name: "Tags",
+    type: "multiSelect",
+    options: [{ id: "a", name: "Alpha", color: "gray" }],
+  });
+  const a = await databases.addEntry(owner, {
+    pageId: base.id,
+    title: "Avec tag",
+  });
+  await databases.addEntry(owner, { pageId: base.id, title: "Sans tag" });
+  await databases.updateCell(owner, {
+    pageId: a.id,
+    propertyId: prop.id,
+    value: ["a"],
+    expectedRevision: 0,
+  });
+  const query = (operator: "empty" | "contains", value: string) =>
+    databases.queryEntries(owner, {
+      pageId: base.id,
+      offset: 0,
+      limit: 50,
+      config: viewSchema.parse({
+        filters: [{ propertyId: prop.id, operator, value }],
+      }),
+    });
+  expect((await query("empty", "")).rows.map((r) => r.title)).toEqual([
+    "Sans tag",
+  ]);
+  expect((await query("contains", "Alpha")).rows.map((r) => r.title)).toEqual([
+    "Avec tag",
+  ]);
+});
+
+test("un export de sous-arbre se réimporte une fois avec ses fichiers et références remappés", async () => {
+  const { exportArchive, importArchive } =
+    await import("../packages/server/src/transfer");
+  const root = await pages.createPage(owner, {
+    workspaceId,
+    title: "Archive é 🌿",
+  });
+  const child = await pages.createPage(owner, {
+    workspaceId,
+    parentId: root.id,
+    title: "Fichier",
+  });
+  const asset = await storeAsset(
+    owner,
+    child.id,
+    "note.txt",
+    new TextEncoder().encode("Portable"),
+  );
+  await pages.saveDocument(owner, {
+    pageId: child.id,
+    expectedRevision: 0,
+    mutationId: crypto.randomUUID(),
+    content: {
+      type: "doc",
+      content: [{ type: "file", attrs: { href: asset.url, name: "note.txt" } }],
+    },
+  });
+  const archive = await exportArchive(owner, root.id, true);
+  expect(archive.pages).toHaveLength(2);
+  expect(archive.assets).toHaveLength(1);
+  const target = await pages.createWorkspace(owner, "Import");
+  const importId = crypto.randomUUID();
+  const input = { workspaceId: target.id, importId, archive };
+  const result = await importArchive(owner, input);
+  expect(await importArchive(owner, input)).toEqual(result);
+  const imported = await pages.listPages(owner, target.id);
+  expect(imported.filter((p) => p.title === "Archive é 🌿")).toHaveLength(1);
+  const importedChild = imported.find((p) => p.title === "Fichier")!;
+  const document = await pages.getPage(owner, importedChild.id);
+  const url = String(document.document.content.content![0]!.attrs!.href);
+  expect(url).not.toBe(asset.url);
+  expect((await readAsset(owner, url.slice(12))).bytes.toString()).toBe(
+    "Portable",
+  );
+});
+
+test("le calendrier et les colonnes filtrent avant de paginer la source", async () => {
+  const page = await pages.createPage(owner, { workspaceId, kind: "database" });
+  const status = await databases.addProperty(owner, {
+    pageId: page.id,
+    name: "Statut",
+    type: "status",
+    options: [
+      { id: "todo", name: "À faire", color: "gray" },
+      { id: "done", name: "Fini", color: "green" },
+    ],
+  });
+  const date = await databases.addProperty(owner, {
+    pageId: page.id,
+    name: "Date",
+    type: "date",
+    options: [],
+  });
+  const source = (await databases.getDatabase(owner, page.id)).source;
+  const inserted = await db
+    .insert(s.pages)
+    .values(
+      Array.from({ length: 61 }, (_, i) => ({
+        workspaceId,
+        parentId: page.id,
+        createdBy: owner,
+        title: `Entrée ${i}`,
+        position: i,
+      })),
+    )
+    .returning();
+  await db.insert(s.entries).values(
+    inserted.map((p, i) => ({
+      sourceId: source.id,
+      pageId: p.id,
+      position: i,
+    })),
+  );
+  await db.insert(s.values).values(
+    inserted.flatMap((p, i) => [
+      {
+        pageId: p.id,
+        propertyId: status.id,
+        textValue: i === 60 ? "done" : "todo",
+      },
+      {
+        pageId: p.id,
+        propertyId: date.id,
+        textValue: i === 60 ? "2026-09-15" : "2026-08-15",
+      },
+    ]),
+  );
+  const config = viewSchema.parse({ layout: "calendar" });
+  const calendar = await databases.queryEntries(owner, {
+    pageId: page.id,
+    config,
+    offset: 0,
+    limit: 50,
+    scope: { propertyId: date.id, from: "2026-09-01", to: "2026-09-30" },
+  });
+  expect(calendar.rows.map((r) => r.id)).toEqual([inserted[60]!.id]);
+  const column = await databases.queryEntries(owner, {
+    pageId: page.id,
+    config,
+    offset: 0,
+    limit: 50,
+    scope: { propertyId: status.id, value: "done" },
+  });
+  expect(column.rows.map((r) => r.id)).toEqual([inserted[60]!.id]);
+  const first = await databases.queryEntries(owner, {
+    pageId: page.id,
+    config,
+    offset: 0,
+    limit: 50,
+    scope: { propertyId: status.id, value: "todo" },
+  });
+  expect(first.hasMore).toBe(true);
+  const second = await databases.queryEntries(owner, {
+    pageId: page.id,
+    config,
+    offset: first.nextOffset,
+    limit: 50,
+    scope: { propertyId: status.id, value: "todo" },
+  });
+  expect(second.rows).toHaveLength(10);
+  expect(second.hasMore).toBe(false);
+});
+
+test("les archives profondes sont rejetées et une ascendance tronquée ne donne aucun accès", async () => {
+  const { importArchive } = await import("../packages/server/src/transfer");
+  const ids = Array.from({ length: 32 }, () => crypto.randomUUID());
+  const archive = {
+    format: "digipm-archive" as const,
+    version: 1 as const,
+    pages: ids.map((id, i) => ({
+      id,
+      parentId: ids[i - 1] ?? null,
+      title: `Niveau ${i}`,
+      icon: "📄",
+      cover: null,
+      kind: "page" as const,
+      privateRoot: i === 0,
+      content: content("Secret"),
+    })),
+    sources: [],
+    properties: [],
+    entries: [],
+    values: [],
+    views: [],
+    assets: [],
+    warnings: [],
+  };
+  await expect(
+    importArchive(owner, {
+      workspaceId,
+      importId: crypto.randomUUID(),
+      archive,
+    }),
+  ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  for (const [i, id] of ids.entries())
+    await db.insert(s.pages).values({
+      id,
+      workspaceId,
+      parentId: ids[i - 1] ?? null,
+      title: "Ancien import profond",
+      createdBy: owner,
+      privateRoot: i === 0,
+    });
+  await expect(pages.getPage(viewer, ids[31]!)).rejects.toMatchObject({
+    code: "NOT_FOUND",
+  });
+});
+
+test("une invitation exige le bon email vérifié et ne peut pas être rejouée", async () => {
+  const { createHash } = await import("node:crypto");
+  const invited = (
+    await auth.api.signUpEmail({
+      body: {
+        name: "Invité",
+        email: `invite-${crypto.randomUUID()}@example.test`,
+        password: "Invite-test-password-2026!",
+      },
+    })
+  ).user;
+  const token = crypto.randomUUID();
+  await db.insert(s.invitations).values({
+    workspaceId,
+    email: invited.email,
+    role: "viewer",
+    tokenHash: createHash("sha256").update(token).digest("hex"),
+    expiresAt: new Date(Date.now() + 60000),
+  });
+  await expect(workspaces.acceptInvitation(owner, token)).rejects.toMatchObject(
+    { code: "NOT_FOUND" },
+  );
+  await expect(
+    workspaces.acceptInvitation(invited.id, token),
+  ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  await db
+    .update(s.user)
+    .set({ emailVerified: true })
+    .where(eq(s.user.id, invited.id));
+  await expect(workspaces.acceptInvitation(invited.id, token)).resolves.toEqual(
+    { workspaceId },
+  );
+  await expect(
+    workspaces.acceptInvitation(invited.id, token),
+  ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  expect(
+    (await workspaces.workspaceMembers(owner, workspaceId)).find(
+      (m) => m.id === invited.id,
+    )?.role,
+  ).toBe("viewer");
+});
+
+test("la confirmation du déplacement refuse une audience qui a changé", async () => {
+  const parent = await pages.createPage(owner, { workspaceId });
+  const child = await pages.createPage(owner, {
+    workspaceId,
+    parentId: parent.id,
+  });
+  await workspaces.sharePage(owner, {
+    pageId: parent.id,
+    privateRoot: true,
+    grants: [],
+  });
+  const preview = await pages.previewMove(owner, child.id, null);
+  await expect(
+    pages.movePage(owner, {
+      id: child.id,
+      parentId: null,
+      confirmAudienceChange: true,
+      confirmedAudience: preview.audience.slice(1),
+    }),
+  ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+  expect((await pages.getPage(owner, child.id)).page.parentId).toBe(parent.id);
+});
+
+test("une archive sans fichiers reste importable et les références de fichiers restent attachées à leur entrée", async () => {
+  const { exportArchive, importArchive } =
+    await import("../packages/server/src/transfer");
+  const base = await pages.createPage(owner, { workspaceId, kind: "database" });
+  const entry = await databases.addEntry(owner, {
+    pageId: base.id,
+    title: "Fichiers",
+  });
+  const other = await databases.addEntry(owner, {
+    pageId: base.id,
+    title: "Autre entrée",
+  });
+  const property = await databases.addProperty(owner, {
+    pageId: base.id,
+    name: "Fichiers",
+    type: "files",
+    options: [],
+  });
+  const asset = await storeAsset(
+    owner,
+    entry.id,
+    "note.txt",
+    Buffer.from("Bonjour"),
+  );
+  await databases.updateCell(owner, {
+    pageId: entry.id,
+    propertyId: property.id,
+    value: [asset.id],
+    expectedRevision: 0,
+  });
+  const portable = await exportArchive(owner, base.id, false);
+  expect(
+    portable.values.find((v) => v.propertyId === property.id)?.value,
+  ).toEqual([]);
+  expect(portable.warnings.length).toBeGreaterThan(0);
+  await expect(
+    importArchive(owner, {
+      workspaceId,
+      importId: crypto.randomUUID(),
+      archive: portable,
+    }),
+  ).resolves.toHaveProperty("pageIds");
+  const tampered = await exportArchive(owner, base.id, true);
+  tampered.assets[0]!.pageId = other.id;
+  await expect(
+    importArchive(owner, {
+      workspaceId,
+      importId: crypto.randomUUID(),
+      archive: tampered,
+    }),
+  ).rejects.toMatchObject({ code: "NOT_FOUND" });
+});

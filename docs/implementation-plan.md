@@ -1,6 +1,6 @@
 # DigiPM — plan d'implémentation d'un espace de travail type Notion
 
-Date : 6 septembre 2026. Statut : plan prêt à exécuter ; application non implémentée dans ce livrable.
+Date : 6 septembre 2026. Statut : plan de référence ; implémentation fonctionnelle en cours de validation. Voir [le rapport de livraison](validation/delivery.md) pour les fonctions effectivement livrées et les écarts.
 
 ## 1. Décision produit
 
@@ -10,7 +10,7 @@ Demandes fermes : TanStack, Drizzle, PostgreSQL, shadcn/ui **sidebar-10**, oRPC,
 
 « Exactement Notion » devient une matrice de parité mesurable. Le produit Notion couvre aussi IA, agents, automatisations, publications et applications Mail/Calendar ; ces domaines ne sont pas assimilés à un éditeur terminé. Le [centre d'aide officiel](https://www.notion.com/help) constitue l'inventaire externe, figé pour ce plan à la date ci-dessus. Chaque lot doit être démontrable ; les extensions restent visibles dans la feuille de route.
 
-Ce livrable comprend le plan, la spec, les décisions du grill autonome, les références Mobbin, les tickets et les skills installés. Les mentions de fonctionnalités ci-dessous sont des travaux planifiés, pas des fonctionnalités déjà développées.
+Ce document conserve les objectifs initiaux. Le rapport de livraison distingue les fonctions implémentées, les validations réalisées et les critères encore ouverts ; une mention ci-dessous ne prouve pas sa disponibilité.
 
 ## 2. Stack retenue
 
@@ -39,7 +39,7 @@ Ce livrable comprend le plan, la spec, les décisions du grill autonome, les ré
 | Observabilité | Logs structurés + métriques HTTP/SQL | Latences, erreurs, conflits, sauvegardes échouées |
 | Livraison | Docker Compose puis images déployables | Installation reproductible et restauration |
 
-Les versions exactes seront sélectionnées et verrouillées au ticket 01 après compilation de l'ensemble. Les docs Start consultées indiquent encore un statut RC, tandis que certains exemples oRPC courants ciblent une bêta : utiliser une ligne cohérente, sans mélange de guides. Les différences d'imports Better Auth/Drizzle et dnd-kit sont consignées dans la [recherche technique](research/technical-sources.md). Il n'existe pas encore de lockfile applicatif validé.
+Les versions exactes seront sélectionnées et verrouillées au ticket 01 après compilation de l'ensemble. Les docs Start consultées indiquent encore un statut RC, tandis que certains exemples oRPC courants ciblent une bêta : utiliser une ligne cohérente, sans mélange de guides. Les différences d'imports Better Auth/Drizzle et dnd-kit sont consignées dans la [recherche technique](research/technical-sources.md). Le lockfile pnpm est désormais présent et le build est validé ; voir le rapport de livraison pour les versions retenues.
 
 Le socle V1 n'a besoin ni de Redis, ni de serveur WebSocket, ni de CRDT, ni de Pusher, ni de service cloud Tiptap. Les éventuels peers de package ne doivent pas activer une fonctionnalité de collaboration. Trigger.dev reste une option de phase ultérieure, derrière le traitement de tâches longues ; l'authentification n'en dépend pas.
 

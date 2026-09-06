@@ -4,7 +4,7 @@
 
 **Blocked by:** 02, 07
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 ## Critères d'acceptation
 
@@ -13,3 +13,7 @@
 - [ ] Retrait et changement de rôle prennent effet côté serveur ; gestion du dernier propriétaire cohérente.
 - [ ] UI de membres et lecture seule ; tests invitations rejouées, viewer tentant une mutation et membre révoqué.
 
+
+## État constaté
+
+Implémentation et vérifications décrites dans [le rapport de livraison](../../../docs/validation/delivery.md). Les critères non cochés restent à vérifier ou à compléter ; la présence du code ne vaut pas validation de tous les cas.

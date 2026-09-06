@@ -149,6 +149,11 @@ export function useDocumentSave(
       }
       return d?.content;
     },
+    ignoreRecovered: async () => {
+      setDraft(null);
+      if (state.current.generation === state.current.saved)
+        await persist(() => del(key));
+    },
     discard: async () => {
       if (request.current) await request.current;
       await persist(() => del(key));

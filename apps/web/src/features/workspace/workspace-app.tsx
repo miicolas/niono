@@ -1,6 +1,6 @@
 import { reportError } from "@/lib/notifications";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useBlocker } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Clock3,
@@ -53,8 +53,34 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
     queryFn: () => client.pages.list({ workspaceId: workspaceId! }),
     enabled: !!workspaceId,
   });
+  const recent = useQuery({
+    queryKey: ["recent", workspaceId],
+    queryFn: () => client.pages.recent({ workspaceId: workspaceId! }),
+    enabled: !!workspaceId,
+  });
   const [moving, setMoving] = useState<PageItem | null>(null);
-  const beforeLeave = useRef<null | (() => Promise<boolean>)>(null);
+  const [pendingMove, setPendingMove] = useState<{
+    id: string;
+    parentId: string | null;
+    beforeId?: string;
+    audience: { id: string; name: string; access: "edit" | "read" }[];
+  } | null>(null);
+  const beforeLeave = useRef<
+    null | ((requireSaved?: boolean) => Promise<boolean>)
+  >(null);
+  useBlocker({
+    enableBeforeUnload: false,
+    shouldBlockFn: async ({ current, next }) => {
+      if (
+        current.routeId === "/" &&
+        next.routeId === "/" &&
+        current.search.p === next.search.p &&
+        current.search.w === next.search.w
+      )
+        return false;
+      return beforeLeave.current ? !(await beforeLeave.current()) : false;
+    },
+  });
   const theme = useUI((s) => s.theme);
   const setTheme = useUI((s) => s.setTheme);
   const setPanel = useUI((s) => s.setPanel);
@@ -85,7 +111,12 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
   };
   const go = async (id: string | null, w = workspaceId) => {
     if (beforeLeave.current && !(await beforeLeave.current())) return;
-    await navigate({ to: "/", search: { w, p: id ?? undefined } });
+    await navigate({
+      to: "/",
+      search: { w, p: id ?? undefined },
+      ignoreBlocker: true,
+    });
+    await cache.invalidateQueries({ queryKey: ["recent", w] });
     setPanel("none");
   };
   const create = async (
@@ -108,9 +139,31 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
     id: string,
     parentId: string | null,
     beforeId?: string,
+    confirmed = false,
+    confirmedAudience?: { id: string; access: "edit" | "read" }[],
   ) => {
     try {
-      await client.pages.move({ id, parentId, beforeId });
+      if (!confirmed) {
+        const preview = await client.pages.previewMove({ id, parentId });
+        if (preview.audience.length) {
+          setPendingMove({
+            id,
+            parentId,
+            beforeId,
+            audience: preview.audience,
+          });
+          return;
+        }
+      }
+      await client.pages.move({
+        id,
+        parentId,
+        beforeId,
+        confirmAudienceChange: confirmed,
+        confirmedAudience,
+      });
+      setPendingMove(null);
+      await cache.invalidateQueries({ queryKey: ["page", id] });
       await refresh();
       setMoving(null);
     } catch (e) {
@@ -123,9 +176,35 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
         setMoving(page);
         return;
       }
+      if (action === "favorite-up") {
+        const favorites = (pages.data ?? [])
+          .filter((p) => p.favorite)
+          .sort(
+            (a, b) => (a.favoritePosition ?? 0) - (b.favoritePosition ?? 0),
+          );
+        const at = favorites.findIndex((p) => p.id === page.id);
+        if (at > 0) {
+          [favorites[at - 1], favorites[at]] = [
+            favorites[at]!,
+            favorites[at - 1]!,
+          ];
+          await client.pages.reorderFavorites({
+            workspaceId: workspaceId!,
+            ids: favorites.map((p) => p.id),
+          });
+        }
+        await refresh();
+        return;
+      }
       if (action === "favorite")
         await client.pages.favorite({ id: page.id, enabled: !page.favorite });
       if (action === "duplicate") {
+        if (
+          pageId === page.id &&
+          beforeLeave.current &&
+          !(await beforeLeave.current(true))
+        )
+          return;
         const result = await client.pages.duplicate({ id: page.id });
         await refresh();
         await go(result.id);
@@ -273,32 +352,25 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
               <section className="home-section">
                 <div className="section-label">
                   <Clock3 size={14} />
-                  Modifiées récemment
+                  Consultées récemment
                 </div>
                 <div className="recent-grid">
-                  {[...(pages.data ?? [])]
-                    .sort(
-                      (a, b) =>
-                        new Date(b.updatedAt).getTime() -
-                        new Date(a.updatedAt).getTime(),
-                    )
-                    .slice(0, 6)
-                    .map((page) => (
-                      <button
-                        className="recent-card"
-                        key={page.id}
-                        onClick={() => void go(page.id)}
-                      >
-                        <span className="card-icon">{page.icon}</span>
-                        <strong>{page.title}</strong>
-                        <small>
-                          {new Date(page.updatedAt).toLocaleDateString(
-                            "fr-FR",
-                            { day: "numeric", month: "long" },
-                          )}
-                        </small>
-                      </button>
-                    ))}
+                  {(recent.data ?? []).slice(0, 6).map((page) => (
+                    <button
+                      className="recent-card"
+                      key={page.id}
+                      onClick={() => void go(page.id)}
+                    >
+                      <span className="card-icon">{page.icon}</span>
+                      <strong>{page.title}</strong>
+                      <small>
+                        {new Date(page.visitedAt).toLocaleDateString("fr-FR", {
+                          day: "numeric",
+                          month: "long",
+                        })}
+                      </small>
+                    </button>
+                  ))}
                 </div>
               </section>
               {workspace?.role !== "viewer" && (
@@ -339,6 +411,49 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
         onNavigate={(id) => void go(id)}
         onRefresh={refresh}
       />
+      <Dialog
+        open={!!pendingMove}
+        onOpenChange={(v) => {
+          if (!v) setPendingMove(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ce déplacement ouvre de nouveaux accès</DialogTitle>
+            <DialogDescription>
+              Ces membres pourront accéder à la page et aux sous-pages qui
+              héritent de ses accès.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-64 overflow-auto">
+            {pendingMove?.audience.map((person) => (
+              <div className="settings-row" key={person.id}>
+                <span>{person.name}</span>
+                <span className="muted">
+                  {person.access === "edit" ? "Modification" : "Lecture"}
+                </span>
+              </div>
+            ))}
+          </div>
+          <Button
+            onClick={() =>
+              pendingMove &&
+              void move(
+                pendingMove.id,
+                pendingMove.parentId,
+                pendingMove.beforeId,
+                true,
+                pendingMove.audience,
+              )
+            }
+          >
+            Confirmer le déplacement et les accès
+          </Button>
+          <Button variant="outline" onClick={() => setPendingMove(null)}>
+            Annuler
+          </Button>
+        </DialogContent>
+      </Dialog>
       <Dialog
         open={!!moving}
         onOpenChange={(v) => {

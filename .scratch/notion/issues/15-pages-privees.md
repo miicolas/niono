@@ -4,7 +4,7 @@
 
 **Blocked by:** 14, 09, 10, 11, 13
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 ## Critères d'acceptation
 
@@ -13,3 +13,7 @@
 - [ ] Déplacement prévisualise la nouvelle audience et requiert une action explicite si la portée change.
 - [ ] Contrôles centralisés dans chaque endpoint, recherche, assets, historique et export futur ; tests de matrice des droits.
 
+
+## État constaté
+
+Implémentation et vérifications décrites dans [le rapport de livraison](../../../docs/validation/delivery.md). Les critères non cochés restent à vérifier ou à compléter ; la présence du code ne vaut pas validation de tous les cas.

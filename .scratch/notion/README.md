@@ -1,6 +1,6 @@
 # Backlog d'implémentation
 
-La [spec V1](spec.md) et le [plan](../../docs/implementation-plan.md) définissent le périmètre. Chaque ticket est une tranche testable par un parcours réel. Les tâches du socle sont planifiées ; aucun ticket d'implémentation n'est terminé à ce stade.
+La [spec V1](spec.md) et le [plan](../../docs/implementation-plan.md) définissent le périmètre. Chaque ticket est une tranche testable par un parcours réel. Le socle 01 est livré. Les autres tranches sont implémentées à des degrés divers et restent en cours de validation : voir [le rapport détaillé](../../docs/validation/delivery.md).
 
 | Ticket | Livrable | Bloqué par |
 | --- | --- | --- |
@@ -34,7 +34,7 @@ La [spec V1](spec.md) et le [plan](../../docs/implementation-plan.md) définisse
 
 ## Exécution
 
-Le seul ticket immédiatement exécutable est 01. Ensuite, choisir un ticket dont tous les bloqueurs sont terminés. `ready-for-agent` indique que la spécification est prête, pas que ses dépendances le sont. Le calendrier a son propre ticket et peut être reporté explicitement à la phase 2 ; tant que ce report n'est pas acté, 22 reste un prérequis de la release planifiée.
+Le ticket 01 est terminé. Continuer les critères encore ouverts dans les tranches suivantes. `ready-for-agent` indique que la spécification est prête, pas que ses dépendances le sont. Le calendrier a son propre ticket et peut être reporté explicitement à la phase 2 ; tant que ce report n'est pas acté, 22 reste un prérequis de la release planifiée.
 
 Les workflows TDD et diagnosing-bugs s'appliquent aux invariants risqués et anomalies ; code-review contrôle chaque tranche avant intégration. La granularité est réévaluée si un ticket dépasse une session de travail ; découper son comportement en sous-parcours en conservant ses critères.
 

@@ -4,7 +4,7 @@
 
 **Blocked by:** 17, 18
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 ## Critères d'acceptation
 
@@ -14,3 +14,7 @@
 - [ ] TanStack Virtual limite les lignes montées ; tri manuel incompatible désactivé clairement.
 - [ ] Tests résultats sur données de référence, opérateurs incorrects, navigation arrière et chargement paginé.
 
+
+## État constaté
+
+Implémentation et vérifications décrites dans [le rapport de livraison](../../../docs/validation/delivery.md). Les critères non cochés restent à vérifier ou à compléter ; la présence du code ne vaut pas validation de tous les cas.

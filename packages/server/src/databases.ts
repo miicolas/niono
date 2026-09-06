@@ -233,6 +233,9 @@ export async function queryEntries(
     offset: number;
     limit: number;
     query?: string;
+    scope?:
+      | { propertyId: string; value: string | null }
+      | { propertyId: string; from: string; to: string };
   },
 ) {
   const source = await sourceFor(userId, input.pageId);
@@ -250,21 +253,59 @@ export async function queryEntries(
         ? sql`pv.number_value`
         : property.type === "checkbox"
           ? sql`pv.bool_value`
-          : sql`pv.text_value`;
+          : ["multiSelect", "person", "files"].includes(property.type)
+            ? sql`pv.array_value`
+            : sql`pv.text_value`;
     return sql`(SELECT ${column} FROM property_values pv WHERE pv.page_id=${s.pages.id} AND pv.property_id=${id})`;
   };
   const filters = input.config.filters.map((f) => {
     const e = expr(f.propertyId);
     const property = properties.find((p) => p.id === f.propertyId);
+    const type = property?.type ?? "text";
+    const multiple = ["multiSelect", "person", "files"].includes(type);
+    if (f.operator === "empty")
+      return multiple
+        ? sql`coalesce(jsonb_array_length(${e}),0)=0`
+        : sql`(${e} IS NULL OR CAST(${e} AS text)='')`;
+    const option = property?.options.find(
+      (o) =>
+        o.id === f.value ||
+        o.name.toLocaleLowerCase() === f.value.toLocaleLowerCase(),
+    );
+    if (multiple) {
+      if (!["contains", "eq", "neq"].includes(f.operator))
+        throw new ORPCError("BAD_REQUEST", {
+          message: "Cet opérateur ne convient pas aux valeurs multiples.",
+        });
+      const member = option?.id ?? f.value;
+      return f.operator === "neq"
+        ? sql`NOT coalesce(${e} ? ${member},false)`
+        : sql`coalesce(${e} ? ${member},false)`;
+    }
+    if (
+      (type === "checkbox" && !["eq", "neq"].includes(f.operator)) ||
+      (["select", "status"].includes(type) &&
+        !["eq", "neq"].includes(f.operator)) ||
+      (["number", "date"].includes(type) && f.operator === "contains") ||
+      (!["number", "date"].includes(type) && ["gt", "lt"].includes(f.operator))
+    )
+      throw new ORPCError("BAD_REQUEST", {
+        message: "Cet opérateur ne convient pas au type de la propriété.",
+      });
     const value =
-      property?.type === "number"
+      type === "number"
         ? Number(f.value)
-        : property?.type === "checkbox"
+        : type === "checkbox"
           ? f.value === "true"
-          : f.value;
-    if (typeof value === "number" && !Number.isFinite(value))
-      throw new ORPCError("BAD_REQUEST");
-    if (f.operator === "empty") return sql`${e} IS NULL`;
+          : (option?.id ?? f.value);
+    if (
+      (type === "number" && (!f.value.trim() || !Number.isFinite(value))) ||
+      (type === "checkbox" && !["true", "false"].includes(f.value)) ||
+      (type === "date" && !validatePropertyValue("date", f.value))
+    )
+      throw new ORPCError("BAD_REQUEST", {
+        message: "La valeur du filtre est invalide.",
+      });
     if (f.operator === "contains")
       return sql`CAST(${e} AS text) ILIKE ${"%" + f.value.replace(/[%_\\]/g, "\\$&") + "%"}`;
     if (f.operator === "eq") return sql`${e} = ${value}`;
@@ -272,7 +313,31 @@ export async function queryEntries(
     if (f.operator === "gt") return sql`${e} > ${value}`;
     return sql`${e} < ${value}`;
   });
+  let scope: SQL | undefined;
+  if (input.scope) {
+    const property = properties.find((p) => p.id === input.scope!.propertyId);
+    if (!property) throw new ORPCError("BAD_REQUEST");
+    const e = expr(property.id);
+    if ("value" in input.scope) {
+      if (!["select", "status"].includes(property.type))
+        throw new ORPCError("BAD_REQUEST");
+      scope =
+        input.scope.value === null
+          ? sql`${e} IS NULL`
+          : sql`${e} = ${input.scope.value}`;
+    } else {
+      if (
+        property.type !== "date" ||
+        !validatePropertyValue("date", input.scope.from) ||
+        !validatePropertyValue("date", input.scope.to) ||
+        input.scope.from > input.scope.to
+      )
+        throw new ORPCError("BAD_REQUEST");
+      scope = sql`${e} >= ${input.scope.from} AND ${e} <= ${input.scope.to}`;
+    }
+  }
   const where = and(
+    scope,
     eq(s.entries.sourceId, source.id),
     sql`${s.pages.deletedAt} IS NULL`,
     sql`(NOT ${s.pages.privateRoot} OR ${s.pages.createdBy}=${userId} OR EXISTS(SELECT 1 FROM page_grants g WHERE g.page_id=${s.pages.id} AND g.user_id=${userId}))`,

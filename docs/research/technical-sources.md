@@ -1,6 +1,6 @@
 # Sources techniques et décisions de cadrage
 
-Recherche effectuée le **2026-09-06**, uniquement dans les documentations et dépôts officiels. Les capacités ci-dessous sont vérifiées dans les sources ; les choix indiqués comme « décision » sont des propositions d'architecture, pas des fonctionnalités fournies automatiquement par les bibliothèques. Aucune combinaison de versions n'a encore été installée ni testée.
+Recherche effectuée le **2026-09-06**, uniquement dans les documentations et dépôts officiels. Les capacités ci-dessous sont vérifiées dans les sources ; les choix indiqués comme « décision » sont des propositions d'architecture, pas des fonctionnalités fournies automatiquement par les bibliothèques. Cette recherche précédait le bootstrap. La combinaison effectivement installée est verrouillée dans pnpm-lock.yaml et ses validations sont consignées dans docs/validation/delivery.md.
 
 ## TanStack Start, oRPC et Query
 

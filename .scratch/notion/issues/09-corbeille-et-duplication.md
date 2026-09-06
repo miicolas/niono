@@ -4,7 +4,7 @@
 
 **Blocked by:** 07, 05
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 ## Critères d'acceptation
 
@@ -13,3 +13,7 @@
 - [ ] Restauration respecte les suppressions antérieures des descendants et choisit un emplacement valide si le parent a disparu.
 - [ ] Suppression définitive bornée par rétention documentée et confirmation utilisateur ; tests des cas imbriqués.
 
+
+## État constaté
+
+Implémentation et vérifications décrites dans [le rapport de livraison](../../../docs/validation/delivery.md). Les critères non cochés restent à vérifier ou à compléter ; la présence du code ne vaut pas validation de tous les cas.

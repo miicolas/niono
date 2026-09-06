@@ -4,7 +4,7 @@
 
 **Blocked by:** 05
 
-**Status:** ready-for-agent
+**Status:** in-progress
 
 ## Critères d'acceptation
 
@@ -14,3 +14,7 @@
 - [ ] Déplacement au clavier ou menu accessible, auto-scroll et indication de destination ; scénarios desktop/touch testés.
 - [ ] Déplacements sauvegardés puis rechargés et tests navigateur sur listes imbriquées.
 
+
+## État constaté
+
+Implémentation et vérifications décrites dans [le rapport de livraison](../../../docs/validation/delivery.md). Les critères non cochés restent à vérifier ou à compléter ; la présence du code ne vaut pas validation de tous les cas.

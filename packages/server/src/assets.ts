@@ -7,7 +7,7 @@ import { ORPCError } from "@orpc/server";
 import { withPage, accessPage, missing } from "./access";
 const root = () => resolve(process.env.ASSET_DIR ?? ".data/assets");
 export const MAX_ASSET_BYTES = 20 * 1024 * 1024;
-function imageType(bytes: Uint8Array) {
+export function imageMime(bytes: Uint8Array) {
   if (
     bytes[0] === 0x89 &&
     bytes[1] === 0x50 &&
@@ -52,7 +52,7 @@ export async function storeAsset(
           key,
           name: name.replace(/[\x00-\x1f/\\]/g, "_").slice(0, 200) || "Fichier",
           size: bytes.length,
-          mime: imageType(bytes),
+          mime: imageMime(bytes),
         })
         .returning();
       return {

@@ -1,3 +1,5 @@
+import { exportArchive, importArchive } from "./transfer";
+import { archiveSchema } from "@digipm/contracts";
 import { os, ORPCError } from "@orpc/server";
 import { z } from "zod";
 import { auth } from "./auth";
@@ -26,6 +28,27 @@ const authenticated = os
   });
 const pageId = z.object({ id: idSchema });
 export const router = {
+  transfer: {
+    export: authenticated
+      .input(
+        z.object({
+          pageId: idSchema,
+          includeAssets: z.boolean().default(true),
+        }),
+      )
+      .handler(({ context, input }) =>
+        exportArchive(context.user.id, input.pageId, input.includeAssets),
+      ),
+    import: authenticated
+      .input(
+        z.object({
+          workspaceId: idSchema,
+          importId: idSchema,
+          archive: archiveSchema,
+        }),
+      )
+      .handler(({ context, input }) => importArchive(context.user.id, input)),
+  },
   bootstrap: authenticated.handler(async ({ context }) => {
     const workspaceId = await pages.ensureWorkspace(context.user.id);
     return {
@@ -74,6 +97,18 @@ export const router = {
       ),
   },
   pages: {
+    recent: authenticated
+      .input(z.object({ workspaceId: idSchema }))
+      .handler(({ context, input }) =>
+        pages.recentPages(context.user.id, input.workspaceId),
+      ),
+    reorderFavorites: authenticated
+      .input(
+        z.object({ workspaceId: idSchema, ids: z.array(idSchema).max(1000) }),
+      )
+      .handler(({ context, input }) =>
+        pages.reorderFavorites(context.user.id, input.workspaceId, input.ids),
+      ),
     list: authenticated
       .input(
         z.object({ workspaceId: idSchema, trash: z.boolean().default(false) }),
@@ -125,11 +160,23 @@ export const router = {
       .handler(({ context, input }) =>
         pages.saveDocument(context.user.id, input),
       ),
+    previewMove: authenticated
+      .input(pageId.extend({ parentId: idSchema.nullable() }))
+      .handler(({ context, input }) =>
+        pages.previewMove(context.user.id, input.id, input.parentId),
+      ),
     move: authenticated
       .input(
         pageId.extend({
           parentId: idSchema.nullable(),
           beforeId: idSchema.optional(),
+          confirmAudienceChange: z.boolean().optional(),
+          confirmedAudience: z
+            .array(
+              z.object({ id: z.string(), access: z.enum(["read", "edit"]) }),
+            )
+            .max(1000)
+            .optional(),
         }),
       )
       .handler(({ context, input }) => pages.movePage(context.user.id, input)),
@@ -236,6 +283,19 @@ export const router = {
           offset: z.number().int().min(0).max(1000000).default(0),
           limit: z.number().int().min(1).max(100).default(50),
           query: z.string().max(200).optional(),
+          scope: z
+            .union([
+              z.object({
+                propertyId: idSchema,
+                value: z.string().max(100).nullable(),
+              }),
+              z.object({
+                propertyId: idSchema,
+                from: z.iso.date(),
+                to: z.iso.date(),
+              }),
+            ])
+            .optional(),
         }),
       )
       .handler(({ context, input }) =>

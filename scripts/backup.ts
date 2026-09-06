@@ -1,11 +1,12 @@
 import { spawnSync } from "node:child_process";
+import { closeSync, openSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
-import { openSync, closeSync } from "node:fs";
-import { resolve, join, dirname, basename } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { postgres } from "./lib/postgres";
+
 const destination = resolve(
   process.argv[2] ??
-    `.data/backups/${new Date().toISOString().replace(/[:.]/g, "-")}`,
+    `.data/backups/${new Date().toISOString().replace(/[:.]/g, "-")}`
 );
 await mkdir(destination, { recursive: true });
 const assetRoot = resolve(process.env.ASSET_DIR ?? ".data/assets");
@@ -14,7 +15,7 @@ const fd = openSync(join(destination, "database.dump"), "wx", 0o600);
 try {
   postgres(
     ["pg_dump", "-U", "digipm", "-Fc", "digipm"],
-    ["ignore", fd, "inherit"],
+    ["ignore", fd, "inherit"]
   );
 } finally {
   closeSync(fd);
@@ -28,9 +29,11 @@ const tar = spawnSync(
     dirname(assetRoot),
     basename(assetRoot),
   ],
-  { stdio: "inherit" },
+  { stdio: "inherit" }
 );
-if (tar.status !== 0) throw new Error("Échec de la sauvegarde des fichiers.");
+if (tar.status !== 0) {
+  throw new Error("Échec de la sauvegarde des fichiers.");
+}
 await writeFile(
   join(destination, "manifest.json"),
   JSON.stringify(
@@ -42,8 +45,8 @@ await writeFile(
       assetsFolder: basename(assetRoot),
     },
     null,
-    2,
+    2
   ),
-  { mode: 0o600 },
+  { mode: 0o600 }
 );
 console.log(`Sauvegarde : ${destination} (${Date.now() - started} ms)`);

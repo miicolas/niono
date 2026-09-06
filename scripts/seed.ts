@@ -1,27 +1,28 @@
-import { auth } from "../packages/server/src/auth";
-import { db, pool, schema as s } from "../packages/db/src";
 import { eq } from "drizzle-orm";
-import {
-  createPage,
-  ensureWorkspace,
-  listPages,
-  saveDocument,
-  favoritePage,
-} from "../packages/server/src/pages";
+import { auth } from "@/auth";
+import { db, pool, schema as s } from "@/db";
 import {
   addEntry,
   addProperty,
   getDatabase,
   saveView,
   updateCell,
-} from "../packages/server/src/databases";
-import { viewSchema, type DocumentNode } from "../packages/contracts/src";
+} from "@/server/services/databases";
+import {
+  createPage,
+  ensureWorkspace,
+  favoritePage,
+  listPages,
+} from "@/server/services/pages";
+import { type DocumentNode, viewSchema } from "@/validators/contracts";
+
 const email = process.env.DEMO_EMAIL ?? "atelier@digipm.test";
 const password = process.env.DEMO_PASSWORD;
-if (!password || password.length < 10)
+if (!password || password.length < 10) {
   throw new Error(
-    "Définissez DEMO_PASSWORD (10 caractères minimum) pour créer le compte de démonstration.",
+    "Définissez DEMO_PASSWORD (10 caractères minimum) pour créer le compte de démonstration."
   );
+}
 try {
   const [existing] = await db
     .select()
@@ -252,15 +253,16 @@ try {
       ["board", "Par statut"],
       ["gallery", "Galerie"],
       ["calendar", "Calendrier"],
-    ] as const)
+    ] as const) {
       await saveView(user.id, {
         pageId: base.id,
         name,
         config: viewSchema.parse({ layout }),
       });
+    }
     await favoritePage(user.id, base.id, true);
     console.log(
-      `Démonstration créée pour ${email}. Ouvrez ${process.env.BETTER_AUTH_URL}/?w=${workspaceId}&p=${home.id}`,
+      `Démonstration créée pour ${email}. Ouvrez ${process.env.BETTER_AUTH_URL}/?w=${workspaceId}&p=${home.id}`
     );
   }
 } finally {

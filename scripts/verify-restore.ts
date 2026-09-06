@@ -1,15 +1,19 @@
 import { spawnSync } from "node:child_process";
-import { readFile, mkdir, access, writeFile } from "node:fs/promises";
-import { openSync, closeSync } from "node:fs";
-import { resolve, join } from "node:path";
+import { closeSync, openSync } from "node:fs";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import { postgres } from "./lib/postgres";
-if (!process.argv[2]) throw new Error("Indiquez le dossier de sauvegarde.");
+
+if (!process.argv[2]) {
+  throw new Error("Indiquez le dossier de sauvegarde.");
+}
 const backup = resolve(process.argv[2]);
 const manifest = JSON.parse(
-  await readFile(join(backup, "manifest.json"), "utf8"),
+  await readFile(join(backup, "manifest.json"), "utf8")
 );
-if (manifest.format !== "digipm-backup" || manifest.version !== 1)
+if (manifest.format !== "digipm-backup" || manifest.version !== 1) {
   throw new Error("Sauvegarde inconnue.");
+}
 const dbName = `digipm_restore_${Date.now()}`;
 const destination = resolve(".data/restores", dbName);
 await mkdir(destination, { recursive: true });
@@ -19,7 +23,7 @@ const fd = openSync(join(backup, "database.dump"), "r");
 try {
   postgres(
     ["pg_restore", "-U", "digipm", "--exit-on-error", "-d", dbName],
-    [fd, "pipe", "pipe"],
+    [fd, "pipe", "pipe"]
   );
 } finally {
   closeSync(fd);
@@ -27,9 +31,11 @@ try {
 const tar = spawnSync(
   "tar",
   ["-xzf", join(backup, "assets.tar.gz"), "-C", destination],
-  { stdio: "inherit" },
+  { stdio: "inherit" }
 );
-if (tar.status !== 0) throw new Error("Fichiers non restaurés.");
+if (tar.status !== 0) {
+  throw new Error("Fichiers non restaurés.");
+}
 const keys = postgres([
   "psql",
   "-U",
@@ -43,8 +49,9 @@ const keys = postgres([
   .trim()
   .split("\n")
   .filter(Boolean);
-for (const key of keys)
+for (const key of keys) {
   await access(join(destination, manifest.assetsFolder, key));
+}
 const counts = postgres([
   "psql",
   "-U",
@@ -64,6 +71,6 @@ const report = {
 };
 await writeFile(
   join(destination, "verification.json"),
-  JSON.stringify(report, null, 2),
+  JSON.stringify(report, null, 2)
 );
 console.log(JSON.stringify(report, null, 2));

@@ -1,11 +1,12 @@
 // @vitest-environment happy-dom
 import "fake-indexeddb/auto";
-import { act, renderHook, waitFor, cleanup } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { clear, get } from "idb-keyval";
 import { afterEach, expect, test, vi } from "vitest";
-import { get, clear } from "idb-keyval";
-import { useDocumentSave } from "../apps/web/src/features/editor/use-document-save";
+import { useDocumentSave } from "@/features/editor/use-document-save";
+
 const save = vi.hoisted(() => vi.fn());
-vi.mock("../apps/web/src/lib/api", () => ({ client: { pages: { save } } }));
+vi.mock("@/orpc/client", () => ({ client: { pages: { save } } }));
 const doc = (text: string) => ({
   type: "doc",
   content: [{ type: "paragraph", content: [{ type: "text", text }] }],
@@ -22,7 +23,7 @@ test("une réponse ancienne ne marque pas la saisie suivante comme enregistrée"
       () =>
         new Promise((resolve) => {
           release = resolve;
-        }),
+        })
     )
     .mockResolvedValueOnce({ revision: 2 });
   const hook = renderHook(() => useDocumentSave("u", "w", "p", 0));
@@ -57,11 +58,11 @@ test("une erreur conserve le brouillon et réutilise le même reçu au retry", a
   await waitFor(async () =>
     expect(await get("digipm-draft:u:w:p")).toMatchObject({
       content: doc("À conserver"),
-    }),
+    })
   );
   await act(() => hook.result.current.flush());
   expect(save.mock.calls[1]![0].mutationId).toBe(
-    save.mock.calls[0]![0].mutationId,
+    save.mock.calls[0]![0].mutationId
   );
   expect(hook.result.current.dirty()).toBe(false);
 });

@@ -2,15 +2,16 @@ import assert from "node:assert/strict";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import type { RouterClient } from "@orpc/server";
-import type { AppRouter } from "../packages/server/src";
+import type { AppRouter } from "@/server/routers/_app";
 import { base, signUp } from "./lib/http";
+
 const password = "Smoke-test-local-2026!";
 const prefix = crypto.randomUUID().slice(0, 8);
 async function account(name: string) {
   const cookie = await signUp(name, `${name}-${prefix}@example.test`, password);
   const headers = { Cookie: cookie, Origin: base };
   const client: RouterClient<AppRouter> = createORPCClient(
-    new RPCLink({ url: `${base}/api/rpc`, headers }),
+    new RPCLink({ url: `${base}/api/rpc`, headers })
   );
   return { client, headers };
 }
@@ -45,7 +46,7 @@ await assert.rejects(bob.client.pages.get({ id: page.id }), {
 });
 await assert.rejects(
   alice.client.pages.save({ ...input, mutationId: crypto.randomUUID() }),
-  { code: "CONFLICT" },
+  { code: "CONFLICT" }
 );
 const basePage = await alice.client.pages.create({
   workspaceId: bootstrap.workspaceId,
@@ -86,11 +87,11 @@ assert.equal(file.status, 200);
 const asset = (await file.json()) as { url: string };
 assert.equal(
   await (await fetch(base + asset.url, { headers: alice.headers })).text(),
-  "Bonjour",
+  "Bonjour"
 );
 assert.equal(
   (await fetch(base + asset.url, { headers: bob.headers })).status,
-  404,
+  404
 );
 assert.equal((await fetch(base + asset.url)).status, 401);
 assert.equal(
@@ -105,11 +106,11 @@ assert.equal(
       body: "{}",
     })
   ).status,
-  403,
+  403
 );
 assert.equal(
   (await fetch(`${base}/api/rpc/bootstrap`, { headers: alice.headers })).status,
-  405,
+  405
 );
 assert.equal(
   (
@@ -119,7 +120,7 @@ assert.equal(
       body: "{}",
     })
   ).status,
-  200,
+  200
 );
 await assert.rejects(alice.client.bootstrap(), { code: "UNAUTHORIZED" });
 console.log(
@@ -143,6 +144,6 @@ console.log(
       durationMs: Math.round(performance.now() - started),
     },
     null,
-    2,
-  ),
+    2
+  )
 );

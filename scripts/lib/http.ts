@@ -7,12 +7,15 @@ export async function signUp(name: string, email: string, password: string) {
     headers: jsonHeaders,
     body: JSON.stringify({ name, email, password }),
   });
-  if (response.status !== 200)
+  if (response.status !== 200) {
     throw new Error(`Inscription ${name} : HTTP ${response.status}`);
+  }
   const cookie = response.headers
     .getSetCookie()
     .map((c) => c.split(";")[0])
     .join("; ");
-  if (!cookie) throw new Error("Cookie de session absent.");
+  if (!cookie) {
+    throw new Error("Cookie de session absent.");
+  }
   return cookie;
 }

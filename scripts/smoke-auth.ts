@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { base, jsonHeaders, signUp } from "./lib/http";
+
 const mailbox = process.env.MAILPIT_URL ?? "http://localhost:18025";
 const email = `auth-${crypto.randomUUID()}@example.test`;
 const password = "Auth-fixture-local-2026!";
 async function post(path: string, body: unknown, cookie = "") {
-  return fetch(base + "/api/auth/" + path, {
+  return fetch(`${base}/api/auth/${path}`, {
     method: "POST",
     headers: { ...jsonHeaders, Cookie: cookie },
     body: JSON.stringify(body),
@@ -13,7 +14,7 @@ async function post(path: string, body: unknown, cookie = "") {
 const cookie = await signUp("Auth fixture", email, password);
 assert.equal(
   (await post("update-user", { name: "Nouveau nom" }, cookie)).status,
-  200,
+  200
 );
 assert.equal(
   (
@@ -24,10 +25,10 @@ assert.equal(
         newPassword: "New-password-local-2026!",
         revokeOtherSessions: true,
       },
-      cookie,
+      cookie
     )
   ).status,
-  400,
+  400
 );
 assert.equal(
   (
@@ -38,29 +39,29 @@ assert.equal(
         newPassword: "New-password-local-2026!",
         revokeOtherSessions: true,
       },
-      cookie,
+      cookie
     )
   ).status,
-  200,
+  200
 );
 assert.equal(
   (
     await post("request-password-reset", {
       email,
-      redirectTo: base + "/reset-password",
+      redirectTo: `${base}/reset-password`,
     })
   ).status,
-  200,
+  200
 );
-const listing = (await (await fetch(mailbox + "/api/v1/messages")).json()) as {
+const listing = (await (await fetch(`${mailbox}/api/v1/messages`)).json()) as {
   messages: { ID: string; To: { Address: string }[] }[];
 };
 const message = listing.messages.find((m) =>
-  m.To.some((to) => to.Address === email),
+  m.To.some((to) => to.Address === email)
 );
 assert.ok(message, "Email de reset reçu");
 const mail = (await (
-  await fetch(mailbox + "/api/v1/message/" + message.ID)
+  await fetch(`${mailbox}/api/v1/message/${message.ID}`)
 ).json()) as { Text: string };
 const link = mail.Text.match(/https?:\/\/\S+/)?.[0];
 assert.ok(link);
@@ -78,10 +79,10 @@ assert.notEqual(
     })
   ).status,
   200,
-  "Jeton consommé non réutilisable",
+  "Jeton consommé non réutilisable"
 );
 const oldSession = await (
-  await fetch(base + "/api/auth/get-session", { headers: { Cookie: cookie } })
+  await fetch(`${base}/api/auth/get-session`, { headers: { Cookie: cookie } })
 ).json();
 assert.equal(oldSession, null, "Session révoquée après reset");
 assert.equal(
@@ -91,17 +92,17 @@ assert.equal(
       password: "Reset-password-local-2026!",
     })
   ).status,
-  200,
+  200
 );
 assert.equal(
   (
     await post("request-password-reset", {
       email: `missing-${crypto.randomUUID()}@example.test`,
-      redirectTo: base + "/reset-password",
+      redirectTo: `${base}/reset-password`,
     })
   ).status,
   200,
-  "Aucune révélation de compte inexistant",
+  "Aucune révélation de compte inexistant"
 );
 console.log(
   JSON.stringify(
@@ -120,6 +121,6 @@ console.log(
       ],
     },
     null,
-    2,
-  ),
+    2
+  )
 );

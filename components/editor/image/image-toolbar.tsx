@@ -1,26 +1,7 @@
-import {
-  AlignCenter,
-  AlignLeft,
-  AlignRight,
-  ExternalLink,
-  Maximize2,
-  Trash2,
-  Type,
-} from "lucide-react";
-import { IMAGE_ALIGNMENTS, type ImageAlign } from "@/lib/editor/image-align";
+import { ExternalLink, Maximize2, Trash2, Type } from "lucide-react";
+import type { ImageAlign } from "@/lib/editor/image-align";
+import { ALIGN_OPTIONS } from "../align-options";
 import { ToolbarButton } from "./toolbar-button";
-
-const ALIGN_ICONS = {
-  left: AlignLeft,
-  center: AlignCenter,
-  right: AlignRight,
-} as const;
-
-const ALIGN_LABELS = {
-  left: "Aligner à gauche",
-  center: "Centrer",
-  right: "Aligner à droite",
-} as const;
 
 const OPEN_LABEL = "Ouvrir dans un nouvel onglet";
 
@@ -51,19 +32,16 @@ export function ImageToolbar({
       contentEditable={false}
       role="toolbar"
     >
-      {IMAGE_ALIGNMENTS.map((value) => {
-        const Icon = ALIGN_ICONS[value];
-        return (
-          <ToolbarButton
-            active={align === value}
-            key={value}
-            label={ALIGN_LABELS[value]}
-            onClick={() => onAlign(value)}
-          >
-            <Icon size={14} />
-          </ToolbarButton>
-        );
-      })}
+      {ALIGN_OPTIONS.map((option) => (
+        <ToolbarButton
+          active={align === option.value}
+          key={option.value}
+          label={option.label}
+          onClick={() => onAlign(option.value)}
+        >
+          <option.icon size={14} />
+        </ToolbarButton>
+      ))}
       <i />
       <ToolbarButton label="Pleine largeur" onClick={onFullWidth}>
         <Maximize2 size={14} />

@@ -4,7 +4,8 @@ services:
     environment:
       POSTGRES_DB: digipm
       POSTGRES_USER: digipm
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      # Le défaut correspond à l'URL loopback des tests hermétiques (scripts/testing).
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-digipm}
     ports:
       - "127.0.0.1:55438:5432"
     volumes:

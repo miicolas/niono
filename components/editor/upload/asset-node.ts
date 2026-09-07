@@ -1,6 +1,6 @@
 import type { JSONContent } from "@tiptap/react";
 import { isImageMime } from "@/constants/image-types";
-import type { UploadedAsset } from "@/features/editor/upload";
+import type { UploadedAsset } from "@/lib/editor/upload-file";
 
 /**
  * Bloc à insérer pour un fichier envoyé : une image si le serveur a reconnu un

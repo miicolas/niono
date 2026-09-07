@@ -1,0 +1,58 @@
+/* Zone principale, barre supérieure et état d'enregistrement. */
+.app-main {
+  min-width: 0;
+  height: 100svh;
+  overflow: hidden;
+  background: var(--background);
+}
+.topbar {
+  height: 47px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 19px;
+  gap: 13px;
+  border-bottom: 1px solid transparent;
+  font-size: 12px;
+}
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  color: var(--muted-foreground);
+}
+.breadcrumbs .current {
+  color: var(--foreground);
+  max-width: 230px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topbar-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.save-status {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  min-width: 80px;
+}
+.save-status.error {
+  color: #ddaf89;
+}
+.subtle-button {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

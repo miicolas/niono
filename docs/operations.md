@@ -17,15 +17,15 @@ docker compose --env-file .env.production -f compose.production.yaml up -d --bui
 docker compose --env-file .env.production -f compose.production.yaml ps
 ```
 
-Le service `app` applique les migrations au démarrage (script `migrate/migrate.mjs` inclus dans l’image) puis devient healthy ; il s’arrête en erreur si une migration échoue. `/api/health` teste également PostgreSQL. Les volumes `postgres_data` et `assets_data` conservent les données. Le port HTTP est lié à 127.0.0.1 ; le reverse proxy expose le service. Ne pas utiliser `down -v` sur une installation à conserver.
+Le service `app` applique les migrations au démarrage (script `.output/migrate.mjs` construit par `bun run build:migrate` et inclus dans l’image `oven/bun`) puis devient healthy ; il s’arrête en erreur si une migration échoue. `/api/health` teste également PostgreSQL. Les volumes `postgres_data` et `assets_data` conservent les données. Le port HTTP est lié à 127.0.0.1 ; le reverse proxy expose le service. Ne pas utiliser `down -v` sur une installation à conserver.
 
 Pour une mise à jour, sauvegarder, reconstruire et appliquer les migrations, puis tester inscription/connexion, accès à une page et upload. Le downgrade du code seul ne garantit pas la compatibilité avec un schéma migré. Conserver image et sauvegarde correspondantes.
 
 ## Sauvegarde en développement
 
 ```sh
-pnpm backup .data/backups/controle
-pnpm backup:verify .data/backups/controle
+bun run backup:create .data/backups/controle
+bun run backup:verify .data/backups/controle
 ```
 
 Ces scripts ciblent **compose.yaml de développement**, la base `digipm` et `ASSET_DIR`. Le second restaure vers une nouvelle base et un nouveau dossier, vérifie les clés de fichiers référencées et écrit un rapport. Il ne remplace pas la base active. Les fichiers de sauvegarde contiennent des données privées ; les déplacer vers un stockage chiffré avec accès restreint.

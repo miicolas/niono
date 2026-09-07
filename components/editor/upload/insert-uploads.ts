@@ -1,5 +1,5 @@
 import type { Editor } from "@tiptap/react";
-import type { UploadedAsset } from "@/features/editor/upload";
+import type { UploadedAsset } from "@/lib/editor/upload-file";
 import {
   addPlaceholder,
   placeholderPos,

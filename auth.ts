@@ -1,8 +1,12 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { betterAuth } from "better-auth";
 import { db, schema } from "@/db";
+import ResetPasswordEmail, {
+  resetPasswordSubject,
+} from "@/emails/reset-password";
+import VerifyEmail, { verifyEmailSubject } from "@/emails/verify-email";
 import { env } from "@/env/server";
-import { sendEmail } from "@/server/services/email/send-email";
+import { sendTemplateEmail } from "@/server/services/email/send-email";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "pg", schema }),
@@ -13,20 +17,16 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 10,
     revokeSessionsOnPasswordReset: true,
-    sendResetPassword: async ({ user, url }) =>
-      sendEmail(
+    sendResetPassword: ({ user, url }) =>
+      sendTemplateEmail(
         user.email,
-        "Réinitialiser votre mot de passe DigiPM",
-        `Bonjour ${user.name},\n\nChoisissez un nouveau mot de passe : ${url}\n\nSi vous n'avez pas demandé ce changement, ignorez ce message.`
+        resetPasswordSubject,
+        ResetPasswordEmail({ name: user.name, url })
       ),
   },
   emailVerification: {
-    sendVerificationEmail: async ({ user, url }) =>
-      sendEmail(
-        user.email,
-        "Vérifier votre adresse DigiPM",
-        `Vérifiez votre adresse : ${url}`
-      ),
+    sendVerificationEmail: ({ user, url }) =>
+      sendTemplateEmail(user.email, verifyEmailSubject, VerifyEmail({ url })),
   },
   rateLimit: {
     enabled: true,

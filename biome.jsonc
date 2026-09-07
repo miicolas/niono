@@ -59,6 +59,32 @@
   },
   "overrides": [
     {
+      // Feuilles de style historiques redistribuées sans modifier les règles ;
+      // la spécificité et les !important existants restent à assainir séparément.
+      "includes": ["styles/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDescendingSpecificity": "off"
+          },
+          "nursery": {
+            "noImportantStyles": "off"
+          }
+        }
+      }
+    },
+    {
+      // Scripts de fumée : assertions node:assert exécutées contre un serveur réel
+      "includes": ["scripts/smoke/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noMisplacedAssertion": "off"
+          }
+        }
+      }
+    },
+    {
       // TanStack Start server-route catch-alls are named `$.ts`
       "includes": ["routes/**"],
       "linter": {

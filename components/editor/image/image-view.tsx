@@ -2,10 +2,9 @@ import { NodeViewWrapper, type ReactNodeViewProps } from "@tiptap/react";
 import { useState } from "react";
 import { toImageAlign } from "@/lib/editor/image-align";
 import { MAX_IMAGE_WIDTH } from "@/lib/editor/image-width";
+import { MAX_ALT_LENGTH } from "@/lib/editor/validate-image-attrs";
 import { ImageToolbar } from "./image-toolbar";
 import { useImageResize } from "./use-image-resize";
-
-const MAX_ALT_LENGTH = 300;
 
 const attr = (value: unknown) => (typeof value === "string" ? value : "");
 
@@ -33,6 +32,7 @@ export function ImageView({
         className="image-frame"
         data-resizing={preview !== null || undefined}
         data-selected={active || undefined}
+        data-sized={shown !== null || undefined}
         ref={figure}
         style={shown ? { width: `${shown}%` } : undefined}
       >
@@ -70,17 +70,17 @@ export function ImageView({
             />
           </>
         )}
-        {active && altOpen && (
-          <input
-            aria-label="Texte alternatif de l’image"
-            className="image-alt"
-            maxLength={MAX_ALT_LENGTH}
-            onChange={(event) => updateAttributes({ alt: event.target.value })}
-            placeholder="Décrivez l’image pour les lecteurs d’écran…"
-            value={attr(node.attrs.alt)}
-          />
-        )}
       </div>
+      {active && altOpen && (
+        <input
+          aria-label="Texte alternatif de l’image"
+          className="image-alt"
+          maxLength={MAX_ALT_LENGTH}
+          onChange={(event) => updateAttributes({ alt: event.target.value })}
+          placeholder="Décrivez l’image pour les lecteurs d’écran…"
+          value={attr(node.attrs.alt)}
+        />
+      )}
     </NodeViewWrapper>
   );
 }

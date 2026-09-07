@@ -30,6 +30,7 @@ services:
       AI_BASE_URL: ${AI_BASE_URL:-}
       AI_API_KEY: ${AI_API_KEY:-}
       LOG_REQUESTS: "true"
+      DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-10}
     volumes:
       - assets_data:/data/assets
     depends_on:

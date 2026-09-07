@@ -1,7 +1,8 @@
 import { IMAGE_ALIGNMENTS } from "./image-align";
 import { MAX_IMAGE_WIDTH, MIN_IMAGE_WIDTH } from "./image-width";
 
-const MAX_ALT_LENGTH = 300;
+/** Longueur maximale du texte alternatif, appliquée à la saisie comme au document. */
+export const MAX_ALT_LENGTH = 300;
 
 function validWidth(value: unknown) {
   return (

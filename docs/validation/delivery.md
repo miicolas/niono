@@ -10,10 +10,10 @@ Le CLI shadcn `sidebar-10` a été exécuté puis ses primitives adaptées aux w
 
 ## Preuves fonctionnelles
 
-- `pnpm typecheck` : les cinq packages applicatifs, les tests et les scripts compilent ensemble.
-- `pnpm test` : 21 tests passent, avec PostgreSQL réel et tests du hook de sauvegarde sur IndexedDB simulé. Ils couvrent isolation, lecture seule, accès privés hérités, CAS concurrent, reçu idempotent, filtrage typé, restauration, duplication/import, profondeur d’import, invitations, confirmation d’audience et brouillons.
-- `scripts/smoke-http.ts` : inscription, session, isolation de deux comptes, sauvegarde/retry/conflit, base et cellule, export/réimport, fichier privé, origine refusée, méthode refusée et déconnexion.
-- `scripts/smoke-auth.ts` : profil, contrôle de l’ancien mot de passe, changement, réception de l’email dans la boîte d’envoi locale, reset, refus de réutilisation du jeton, révocation de session et connexion avec le nouveau mot de passe. Réponse de récupération neutre pour un compte inexistant.
+- `bun run checks` : Biome et TypeScript passent sur l’ensemble du dépôt plat (application, scripts et tests).
+- `bun run test` : les tests passent dans un environnement hermétique (`scripts/testing`), avec PostgreSQL réel et tests du hook de sauvegarde sur IndexedDB simulé. Ils couvrent isolation, lecture seule, accès privés hérités, CAS concurrent, reçu idempotent, filtrage typé, restauration, duplication/import, profondeur d’import, invitations, confirmation d’audience et brouillons.
+- `scripts/smoke/http.ts` : inscription, session, isolation de deux comptes, sauvegarde/retry/conflit, base et cellule, export/réimport, fichier privé, origine refusée, méthode refusée et déconnexion.
+- `scripts/smoke/auth.ts` : profil, contrôle de l’ancien mot de passe, changement, réception de l’email dans la boîte d’envoi locale, reset, refus de réutilisation du jeton, révocation de session et connexion avec le nouveau mot de passe. Réponse de récupération neutre pour un compte inexistant.
 - Build Vite/Nitro et image Docker réussis. Une installation Compose séparée a démarré sur une base vierge après migrations.
 - Sauvegarde PostgreSQL + assets restaurée dans une autre base et un autre dossier ; présence de chaque fichier référencé vérifiée. La restauration ne remplace pas les données actives.
 

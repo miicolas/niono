@@ -482,7 +482,7 @@
 .editor-image[data-align="right"] .image-frame {
   margin-inline: auto 0;
 }
-.editor-image .image-frame > img {
+.editor-image .image-frame[data-sized] > img {
   width: 100%;
 }
 .editor-image .image-frame[data-selected] > img,

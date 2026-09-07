@@ -1,0 +1,24 @@
+/* Palette claire par défaut. */
+:root {
+  --background: #fbfaf7;
+  --foreground: #302f2c;
+  --card: #f7f5f0;
+  --popover: #fffefa;
+  --primary: #343532;
+  --primary-foreground: #fff;
+  --secondary: #eeece6;
+  --muted: #f0eee9;
+  --muted-foreground: #77756e;
+  --accent: #eae7e0;
+  --border: #e5e2da;
+  --sidebar: #f1efe9;
+  --sidebar-foreground: #585650;
+  --sidebar-primary: #31322f;
+  --sidebar-primary-foreground: #fff;
+  --sidebar-accent: #e7e4dd;
+  --sidebar-accent-foreground: #252522;
+  --sidebar-border: #e6e3dc;
+  --sidebar-ring: #9caaa1;
+  --radius: 8px;
+  color-scheme: light;
+}

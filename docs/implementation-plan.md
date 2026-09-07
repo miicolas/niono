@@ -16,7 +16,7 @@ Ce document conserve les objectifs initiaux. Le rapport de livraison distingue l
 
 | Domaine | Choix | Responsabilité |
 | --- | --- | --- |
-| Langage / runtime | TypeScript strict, Node LTS, pnpm workspaces | Exécution portable et versions verrouillées |
+| Langage / runtime | TypeScript strict, Bun, dépôt plat, Biome | Exécution portable et versions verrouillées |
 | Application | React + TanStack Start + Vite | Pages, rendu initial, endpoints serveur |
 | Navigation | TanStack Router | Routes typées, loaders, paramètres de recherche validés |
 | Données client | TanStack Query + intégration oRPC | Cache serveur, mutations, invalidation ciblée |
@@ -62,17 +62,14 @@ flowchart LR
   Domain --> Files[Stockage de fichiers]
 ```
 
-Monolithe modulaire : un déploiement web au départ, un worker seulement lorsque les traitements l'exigent. Organisation cible, à créer au bootstrap :
+Monolithe modulaire : un déploiement web au départ, un worker seulement lorsque les traitements l'exigent. Organisation (dépôt plat, voir ADR 0004) :
 
 ```text
-apps/web/                  # TanStack Start, routes et fonctionnalités UI
-  src/routes/
-  src/features/            # auth, workspace, pages, editor, databases
-  src/components/ui/       # composants shadcn générés, dont sidebar
-packages/contracts/        # schémas publics et contrats oRPC
-packages/server/           # procédures et modules métier privés au serveur
-packages/db/               # schémas Drizzle, migrations, connexion
-packages/editor/           # schéma de document, extensions et rendu partagé
+routes/                    # TanStack Router : (auth), (application) + -components/-lib colocalisés, api/
+server/routers/<domaine>/  # oRPC : router.ts, queries/, mutations/ (une procédure par fichier)
+server/services/<domaine>/ # modules métier : une fonction par fichier, transactions et invariants
+db/schema/<domaine>/       # schémas Drizzle par domaine ; migrations/ à la racine
+validators/, lib/, constants/, env/, emails/, components/, styles/
 docs/                      # décisions et références
 .scratch/notion/           # spec et tickets locaux
 ```

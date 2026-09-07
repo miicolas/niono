@@ -1,5 +1,5 @@
 import type { schema as s } from "@/db";
-import type { PropertyValue } from "@/validators/contracts";
+import type { PropertyValue } from "@/validators/databases";
 export function valueFrom(row: typeof s.values.$inferSelect): PropertyValue {
   return (
     row.textValue ?? row.numberValue ?? row.boolValue ?? row.arrayValue ?? null

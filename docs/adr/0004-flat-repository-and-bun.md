@@ -1,0 +1,3 @@
+# ADR 0004 — Dépôt plat, Bun et Biome
+
+Le dépôt abandonne le monorepo pnpm (`apps/web`, `packages/*`) pour un dépôt plat calqué sur l'architecture de référence : `routes/`, `server/routers/<domaine>`, `server/services/<domaine>`, `db/schema/<domaine>`, `validators/`, `env/`, `emails/` à la racine, `srcDirectory: "."` et alias `@/*`. Bun remplace Node et pnpm comme runtime, gestionnaire de paquets et lanceur de tests (`bun:test` derrière un launcher hermétique) ; Biome avec le preset ultracite remplace Prettier. Les modules métier restent ceux de l'ADR 0003 : ils sont simplement matérialisés en un fichier par fonction, et les procédures oRPC en un fichier par procédure.

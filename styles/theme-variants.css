@@ -1,0 +1,27 @@
+/* Palette sombre (.dark). */
+.dark {
+  --background: #111112;
+  --foreground: #deddd8;
+  --card: #181819;
+  --popover: #242425;
+  --primary: #e7e5de;
+  --primary-foreground: #202020;
+  --secondary: #29292a;
+  --muted: #202021;
+  --muted-foreground: #92918d;
+  --accent: #2b2b2c;
+  --border: #2b2b2c;
+  --sidebar: #19191a;
+  --sidebar-foreground: #a7a6a2;
+  --sidebar-primary: #d9d7ce;
+  --sidebar-primary-foreground: #1c1c1c;
+  --sidebar-accent: #29292a;
+  --sidebar-accent-foreground: #edede8;
+  --sidebar-border: #272728;
+  --sidebar-ring: #737d77;
+  color-scheme: dark;
+}
+* {
+  box-sizing: border-box;
+  border-color: var(--border);
+}

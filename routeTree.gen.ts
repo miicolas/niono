@@ -9,34 +9,50 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as InviteRouteImport } from './routes/invite'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as applicationRouteRouteImport } from './routes/(application)/route'
+import { Route as authRouteRouteImport } from './routes/(auth)/route'
+import { Route as applicationIndexRouteImport } from './routes/(application)/index'
+import { Route as applicationInviteRouteImport } from './routes/(application)/invite'
+import { Route as authLoginRouteImport } from './routes/(auth)/login'
+import { Route as authResetPasswordRouteImport } from './routes/(auth)/reset-password'
+import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiAssetsSplatRouteImport } from './routes/api/assets/$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiRpcSplatRouteImport } from './routes/api/rpc/$'
 
-const IndexRoute = IndexRouteImport.update({
+const applicationRouteRoute = applicationRouteRouteImport.update({
+  id: '/(application)',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const authRouteRoute = authRouteRouteImport.update({
+  id: '/(auth)',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const applicationIndexRoute = applicationIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => applicationRouteRoute,
 } as any)
-const InviteRoute = InviteRouteImport.update({
+const applicationInviteRoute = applicationInviteRouteImport.update({
   id: '/invite',
   path: '/invite',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => applicationRouteRoute,
 } as any)
-const LoginRoute = LoginRouteImport.update({
+const authLoginRoute = authLoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => authRouteRoute,
 } as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
+const authResetPasswordRoute = authResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => authRouteRoute,
+} as any)
+const authSignInRoute = authSignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => authRouteRoute,
 } as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
@@ -60,32 +76,37 @@ const ApiRpcSplatRoute = ApiRpcSplatRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/invite': typeof InviteRoute
-  '/login': typeof LoginRoute
-  '/reset-password': typeof ResetPasswordRoute
+  '/invite': typeof applicationInviteRoute
+  '/login': typeof authLoginRoute
+  '/reset-password': typeof authResetPasswordRoute
+  '/sign-in': typeof authSignInRoute
   '/api/health': typeof ApiHealthRoute
+  '/': typeof applicationIndexRoute
   '/api/assets/$': typeof ApiAssetsSplatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/invite': typeof InviteRoute
-  '/login': typeof LoginRoute
-  '/reset-password': typeof ResetPasswordRoute
+  '/invite': typeof applicationInviteRoute
+  '/login': typeof authLoginRoute
+  '/reset-password': typeof authResetPasswordRoute
+  '/sign-in': typeof authSignInRoute
   '/api/health': typeof ApiHealthRoute
+  '/': typeof applicationIndexRoute
   '/api/assets/$': typeof ApiAssetsSplatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/invite': typeof InviteRoute
-  '/login': typeof LoginRoute
-  '/reset-password': typeof ResetPasswordRoute
+  '/(application)': typeof applicationRouteRouteWithChildren
+  '/(auth)': typeof authRouteRouteWithChildren
+  '/(application)/invite': typeof applicationInviteRoute
+  '/(auth)/login': typeof authLoginRoute
+  '/(auth)/reset-password': typeof authResetPasswordRoute
+  '/(auth)/sign-in': typeof authSignInRoute
   '/api/health': typeof ApiHealthRoute
+  '/(application)/': typeof applicationIndexRoute
   '/api/assets/$': typeof ApiAssetsSplatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
@@ -93,41 +114,44 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/invite'
     | '/login'
     | '/reset-password'
+    | '/sign-in'
     | '/api/health'
+    | '/'
     | '/api/assets/$'
     | '/api/auth/$'
     | '/api/rpc/$'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/invite'
     | '/login'
     | '/reset-password'
+    | '/sign-in'
     | '/api/health'
+    | '/'
     | '/api/assets/$'
     | '/api/auth/$'
     | '/api/rpc/$'
   id:
     | '__root__'
-    | '/'
-    | '/invite'
-    | '/login'
-    | '/reset-password'
+    | '/(application)'
+    | '/(auth)'
+    | '/(application)/invite'
+    | '/(auth)/login'
+    | '/(auth)/reset-password'
+    | '/(auth)/sign-in'
     | '/api/health'
+    | '/(application)/'
     | '/api/assets/$'
     | '/api/auth/$'
     | '/api/rpc/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  InviteRoute: typeof InviteRoute
-  LoginRoute: typeof LoginRoute
-  ResetPasswordRoute: typeof ResetPasswordRoute
+  applicationRouteRoute: typeof applicationRouteRouteWithChildren
+  authRouteRoute: typeof authRouteRouteWithChildren
   ApiHealthRoute: typeof ApiHealthRoute
   ApiAssetsSplatRoute: typeof ApiAssetsSplatRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -136,33 +160,54 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/(application)': {
+      id: '/(application)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof applicationRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(auth)': {
+      id: '/(auth)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof authRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(application)/': {
+      id: '/(application)/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof applicationIndexRouteImport
+      parentRoute: typeof applicationRouteRoute
     }
-    '/invite': {
-      id: '/invite'
+    '/(application)/invite': {
+      id: '/(application)/invite'
       path: '/invite'
       fullPath: '/invite'
-      preLoaderRoute: typeof InviteRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof applicationInviteRouteImport
+      parentRoute: typeof applicationRouteRoute
     }
-    '/login': {
-      id: '/login'
+    '/(auth)/login': {
+      id: '/(auth)/login'
       path: '/login'
       fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof authLoginRouteImport
+      parentRoute: typeof authRouteRoute
     }
-    '/reset-password': {
-      id: '/reset-password'
+    '/(auth)/reset-password': {
+      id: '/(auth)/reset-password'
       path: '/reset-password'
       fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof authResetPasswordRouteImport
+      parentRoute: typeof authRouteRoute
+    }
+    '/(auth)/sign-in': {
+      id: '/(auth)/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof authSignInRouteImport
+      parentRoute: typeof authRouteRoute
     }
     '/api/health': {
       id: '/api/health'
@@ -195,11 +240,38 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface applicationRouteRouteChildren {
+  applicationInviteRoute: typeof applicationInviteRoute
+  applicationIndexRoute: typeof applicationIndexRoute
+}
+
+const applicationRouteRouteChildren: applicationRouteRouteChildren = {
+  applicationInviteRoute: applicationInviteRoute,
+  applicationIndexRoute: applicationIndexRoute,
+}
+
+const applicationRouteRouteWithChildren =
+  applicationRouteRoute._addFileChildren(applicationRouteRouteChildren)
+
+interface authRouteRouteChildren {
+  authLoginRoute: typeof authLoginRoute
+  authResetPasswordRoute: typeof authResetPasswordRoute
+  authSignInRoute: typeof authSignInRoute
+}
+
+const authRouteRouteChildren: authRouteRouteChildren = {
+  authLoginRoute: authLoginRoute,
+  authResetPasswordRoute: authResetPasswordRoute,
+  authSignInRoute: authSignInRoute,
+}
+
+const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
+  authRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  InviteRoute: InviteRoute,
-  LoginRoute: LoginRoute,
-  ResetPasswordRoute: ResetPasswordRoute,
+  applicationRouteRoute: applicationRouteRouteWithChildren,
+  authRouteRoute: authRouteRouteWithChildren,
   ApiHealthRoute: ApiHealthRoute,
   ApiAssetsSplatRoute: ApiAssetsSplatRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

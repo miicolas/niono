@@ -6,24 +6,24 @@ Un espace de travail open source pour écrire et organiser ses projets, avec Tan
 
 ## Démarrage local
 
-Prérequis : Node 24, pnpm 10.30.1, Docker Compose.
+Prérequis : Bun 1.3, Docker Compose.
 
 ```sh
-pnpm install --frozen-lockfile
+bun install
 cp .env.example .env
 ```
 
 Dans `.env`, remplacez `POSTGRES_PASSWORD` (également dans `DATABASE_URL`) et `BETTER_AUTH_SECRET` par des secrets aléatoires. `openssl rand -hex 32` convient pour chaque valeur. Configurez `ASSET_DIR` avec un chemin **absolu** vers `.data/assets` du projet.
 
 ```sh
-docker compose up -d
-pnpm db:migrate
-pnpm dev
+bun run db:start
+bun run db:migrate
+bun run dev
 ```
 
-Ouvrez l’adresse affichée par Vite, normalement [localhost:3000](http://localhost:3000), et créez un compte. Si le port est occupé, utilisez le port choisi par Vite dans `BETTER_AUTH_URL` puis redémarrez `pnpm dev`. Sans `RESEND_API_KEY`, les emails locaux sont écrits en JSON dans `.data/outbox` et le lien à ouvrir apparaît dans la console.
+Ouvrez l’adresse affichée par Vite, normalement [localhost:3000](http://localhost:3000), et créez un compte. Si le port est occupé, utilisez le port choisi par Vite dans `BETTER_AUTH_URL` puis redémarrez `bun run dev`. Sans `RESEND_API_KEY`, les emails locaux sont écrits en JSON dans `.data/outbox` et le lien à ouvrir apparaît dans la console.
 
-Pour créer un atelier de démonstration, définissez `DEMO_PASSWORD` dans `.env`, puis lancez `pnpm db:seed`. Le compte `atelier@digipm.test` reçoit des pages et une base d’exemple. Le seed est facultatif et ne crée pas de compte de démonstration en production.
+Pour créer un atelier de démonstration, définissez `DEMO_PASSWORD` dans `.env`, puis lancez `bun run db:seed`. Le compte `atelier@digipm.test` reçoit des pages et une base d’exemple. Le seed est facultatif et ne crée pas de compte de démonstration en production.
 
 ## Fonctionnement
 
@@ -39,24 +39,23 @@ Le bouton IA propose une sélection et une prévisualisation. Il nécessite `AI_
 ## Vérifications
 
 ```sh
-pnpm typecheck
-pnpm test
-pnpm format:check
-pnpm build
-SMOKE_URL=http://localhost:3000 pnpm exec tsx scripts/smoke-http.ts
-SMOKE_URL=http://localhost:3000 pnpm exec tsx scripts/smoke-auth.ts
-pnpm exec dotenv -e .env -- tsx scripts/benchmark.ts
+bun run checks        # Biome + TypeScript
+bun run test          # bun:test hermétique (Postgres local sur 127.0.0.1:55438)
+bun run build
+SMOKE_URL=http://localhost:3000 bun run smoke:http
+SMOKE_URL=http://localhost:3000 bun run smoke:auth
+bun run bench:database
 ```
 
-Les tests d’intégration utilisent PostgreSQL et créent uniquement des comptes synthétiques `@example.test`. Le benchmark génère temporairement 100 000 entrées et 2 millions de valeurs puis les supprime ; prévoyez de l’espace disque et exécutez-le hors trafic réel. Les mesures disponibles et les essais navigateur sont consignés dans [validation](docs/validation/delivery.md).
+Les tests d’intégration utilisent PostgreSQL et créent uniquement des comptes synthétiques `@example.test`. Le launcher de tests ignore le `.env` et cible la base locale de `compose.yaml` (mot de passe `digipm` par défaut). Le benchmark génère temporairement 100 000 entrées et 2 millions de valeurs puis les supprime ; prévoyez de l’espace disque et exécutez-le hors trafic réel. Les mesures disponibles et les essais navigateur sont consignés dans [validation](docs/validation/delivery.md).
 
 ## Auto-hébergement
 
-Voir [le guide d’exploitation](docs/operations.md) pour Docker, Resend, sauvegarde et restauration. L’image utilise Node 24 et fonctionne sans root. Les migrations s’exécutent dans un service distinct avant le démarrage de l’application.
+Voir [le guide d’exploitation](docs/operations.md) pour Docker, Resend, sauvegarde et restauration. L’image utilise Bun (`oven/bun`) et fonctionne sans root. Les migrations s’exécutent au démarrage du conteneur, avant le serveur.
 
 ## Architecture et contribution
 
-Monorepo pnpm : `apps/web` pour TanStack Start, `packages/server` pour les modules métier et oRPC, `packages/db` pour Drizzle, `packages/contracts` pour Zod et `packages/editor` pour Tiptap. Query détient les données serveur ; Zustand gère l’interface ; Tiptap détient le document en cours de saisie.
+Dépôt plat (voir `CLAUDE.md` et l’ADR 0004) : `routes/` pour TanStack Router avec composants colocalisés, `server/routers/<domaine>` pour oRPC, `server/services/<domaine>` pour les modules métier, `db/schema/<domaine>` pour Drizzle, `validators/` pour Zod et `components/editor` pour Tiptap. Query détient les données serveur ; Zustand gère l’interface ; Tiptap détient le document en cours de saisie.
 
 Le [plan](docs/implementation-plan.md), les [ADR](docs/adr/), le [glossaire](CONTEXT.md) et le [backlog](.scratch/notion/README.md) documentent les choix et les travaux restants. Les [références design](docs/design/notion-reference.md) incluent Notion, Mobbin et les liens Tiptap demandés.
 

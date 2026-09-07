@@ -1,0 +1,136 @@
+/* Barre latérale de l'espace et arbre des pages. */
+.workspace-sidebar [data-slot="sidebar-content"] {
+  gap: 12px;
+}
+.workspace-sidebar [data-slot="sidebar-header"] {
+  padding: 12px 10px 4px;
+}
+.workspace-sidebar [data-slot="sidebar-group"] {
+  padding: 0 10px;
+}
+.workspace-sidebar [data-slot="sidebar-menu-button"] {
+  height: 30px;
+  font-size: 13px;
+  border-radius: 5px;
+  gap: 9px;
+}
+.workspace-sidebar [data-slot="sidebar-group-label"] {
+  font-size: 11px;
+  color: #8d8c88;
+  padding-left: 9px;
+  height: 30px;
+}
+.workspace-sidebar [data-slot="sidebar-menu-button"] svg {
+  width: 15px;
+  height: 15px;
+  color: #969590;
+}
+.workspace-sidebar [data-slot="sidebar-menu-button"][data-active="true"] {
+  color: var(--foreground);
+  background: var(--accent);
+}
+.workspace-switcher {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 5px;
+  margin-bottom: 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--foreground);
+}
+.workspace-switcher .name {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workspace-bottom {
+  margin-top: auto;
+  padding: 10px 10px 16px;
+  border-top: 1px solid var(--border);
+}
+.workspace-bottom .profile-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 5px 0;
+  font-size: 12px;
+}
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #b3a992;
+  color: #272822;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.tree-row {
+  display: flex;
+  align-items: center;
+  border-radius: 5px;
+  height: 30px;
+  gap: 3px;
+  position: relative;
+}
+.tree-row.active {
+  background: var(--accent);
+  color: var(--foreground);
+}
+.tree-row .page-link {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tree-row .page-link span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tree-row .row-action {
+  opacity: 0;
+  flex-shrink: 0;
+}
+.tree-row:hover .row-action,
+.tree-row:focus-within .row-action {
+  opacity: 1;
+}
+.tree-chevron {
+  width: 19px;
+  min-width: 19px;
+  height: 25px;
+  background: transparent;
+  border: 0;
+  color: var(--muted-foreground);
+  display: grid;
+  place-items: center;
+}
+.tree-children {
+  margin-left: 14px;
+}
+.tree-row.dragging {
+  opacity: 0.4;
+}
+.shortcut {
+  font-size: 10px;
+  color: #777773;
+  margin-left: auto;
+}
+.sidebar-helper {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+  padding: 10px 9px;
+}

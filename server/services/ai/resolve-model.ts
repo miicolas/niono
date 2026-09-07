@@ -2,6 +2,8 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import type { LanguageModel } from "ai";
 import { env } from "@/env/server";
 
+const TRAILING_SLASH = /\/$/;
+
 /**
  * Chooses the language model from the environment.
  * - `AI_MODEL` alone (with `AI_GATEWAY_API_KEY`) targets the Vercel AI Gateway, e.g. `openai/gpt-5.1`.
@@ -19,7 +21,7 @@ export function resolveModel(): LanguageModel | undefined {
   }
   const provider = createOpenAICompatible({
     name: "digipm",
-    baseURL: baseURL.replace(/\/$/, ""),
+    baseURL: baseURL.replace(TRAILING_SLASH, ""),
     apiKey: env.AI_API_KEY,
   });
   return provider(model);

@@ -1,4 +1,15 @@
 @import "tailwindcss";
-@import "./theme.css";
+@import "./tailwind-theme.css";
+@import "./theme-root.css";
+@import "./theme-variants.css";
+@import "./base.css";
+@import "./components-auth.css";
+@import "./components-sidebar.css";
+@import "./components-shell.css";
+@import "./components-document.css";
+@import "./components-home.css";
+@import "./responsive.css";
+@import "./components-page.css";
+@import "./components-database.css";
 @import "./editor.css";
 @custom-variant dark (&:is(.dark *));

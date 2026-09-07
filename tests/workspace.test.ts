@@ -1,6 +1,8 @@
 import { expect, test } from "vitest";
 import { auth } from "@/auth";
-import { createWorkspace, getPage, listPages } from "@/server/services/pages";
+import { getPage } from "@/server/services/pages/get-page";
+import { listPages } from "@/server/services/pages/list-pages";
+import { createWorkspace } from "@/server/services/workspaces/create-workspace";
 
 test("un nouvel espace possède une première page privée aux autres utilisateurs", async () => {
   const a = await auth.api.signUpEmail({

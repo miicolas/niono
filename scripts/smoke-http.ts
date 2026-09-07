@@ -19,7 +19,7 @@ const started = performance.now();
 assert.equal((await fetch(`${base}/api/health`)).status, 200);
 const alice = await account("alice");
 const bob = await account("bob");
-const bootstrap = await alice.client.bootstrap();
+const bootstrap = await alice.client.workspaces.bootstrap();
 assert.equal(bootstrap.user.name, "alice");
 const page = await alice.client.pages.create({
   workspaceId: bootstrap.workspaceId,
@@ -39,13 +39,13 @@ const input = {
     ],
   },
 };
-assert.deepEqual(await alice.client.pages.save(input), { revision: 1 });
-assert.deepEqual(await alice.client.pages.save(input), { revision: 1 });
+assert.deepEqual(await alice.client.documents.save(input), { revision: 1 });
+assert.deepEqual(await alice.client.documents.save(input), { revision: 1 });
 await assert.rejects(bob.client.pages.get({ id: page.id }), {
   code: "NOT_FOUND",
 });
 await assert.rejects(
-  alice.client.pages.save({ ...input, mutationId: crypto.randomUUID() }),
+  alice.client.documents.save({ ...input, mutationId: crypto.randomUUID() }),
   { code: "CONFLICT" }
 );
 const basePage = await alice.client.pages.create({
@@ -122,7 +122,9 @@ assert.equal(
   ).status,
   200
 );
-await assert.rejects(alice.client.bootstrap(), { code: "UNAUTHORIZED" });
+await assert.rejects(alice.client.workspaces.bootstrap(), {
+  code: "UNAUTHORIZED",
+});
 console.log(
   JSON.stringify(
     {

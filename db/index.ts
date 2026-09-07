@@ -4,7 +4,7 @@ import { Pool } from "pg";
 import { env } from "@/env/server";
 import * as schema from "./schema";
 
-export { schema };
+export * as schema from "./schema";
 
 export const pool = new Pool({
   connectionString: env.DATABASE_URL,

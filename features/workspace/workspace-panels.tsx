@@ -13,10 +13,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { AccountSettings } from "@/features/auth/account-settings";
 import { authClient } from "@/lib/auth/client";
+import type { DocumentNode } from "@/lib/editor/document-node";
 import { reportError } from "@/lib/ui/notifications";
 import { useUI } from "@/lib/ui/store";
-import { client } from "@/orpc/client";
-import type { DocumentNode } from "@/validators/contracts";
+import { orpcClient } from "@/orpc/client";
 import { ImportPanel } from "./import/import-panel";
 import type { Bootstrap } from "./types";
 export function WorkspacePanels({
@@ -45,17 +45,17 @@ export function WorkspacePanels({
   }, [query]);
   const results = useQuery({
     queryKey: ["search", workspaceId, debounced],
-    queryFn: () => client.pages.search({ workspaceId, query: debounced }),
+    queryFn: () => orpcClient.pages.search({ workspaceId, query: debounced }),
     enabled: panel === "search",
   });
   const trash = useQuery({
     queryKey: ["trash", workspaceId],
-    queryFn: () => client.pages.list({ workspaceId, trash: true }),
+    queryFn: () => orpcClient.pages.list({ workspaceId, trash: true }),
     enabled: panel === "trash",
   });
   const members = useQuery({
     queryKey: ["members", workspaceId],
-    queryFn: () => client.workspace.members({ workspaceId }),
+    queryFn: () => orpcClient.workspaces.members({ workspaceId }),
     enabled: panel === "settings",
   });
   const isOwner =
@@ -180,7 +180,7 @@ export function WorkspacePanels({
                     <Button
                       onClick={async () => {
                         try {
-                          await client.pages.trash({
+                          await orpcClient.pages.trash({
                             id: page.id,
                             restore: true,
                           });
@@ -244,7 +244,7 @@ export function WorkspacePanels({
                         { type: "paragraph" },
                       ]),
                     };
-                    const page = await client.pages.create({
+                    const page = await orpcClient.pages.create({
                       workspaceId,
                       title: template.title,
                       icon: template.icon,
@@ -371,7 +371,7 @@ export function WorkspacePanels({
                         aria-label={`Rôle de ${member.name}`}
                         onChange={async (e) => {
                           try {
-                            await client.workspace.role({
+                            await orpcClient.workspaces.role({
                               workspaceId,
                               memberId: member.id,
                               role: e.target.value as
@@ -410,7 +410,7 @@ export function WorkspacePanels({
                     const data = new FormData(e.currentTarget);
                     setBusy(true);
                     try {
-                      await client.workspace.invite({
+                      await orpcClient.workspaces.invite({
                         workspaceId,
                         email: String(data.get("email")),
                         role:

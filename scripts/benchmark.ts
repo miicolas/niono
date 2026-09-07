@@ -1,13 +1,12 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { eq, sql } from "drizzle-orm";
 import { db, pool, schema as s } from "@/db";
-import { getDatabase, queryEntries } from "@/server/services/databases";
-import {
-  createPage,
-  createWorkspace,
-  searchPages,
-} from "@/server/services/pages";
-import { viewSchema } from "@/validators/contracts";
+import { getDatabase } from "@/server/services/databases/get-database";
+import { queryEntries } from "@/server/services/databases/query-entries";
+import { createPage } from "@/server/services/pages/create-page";
+import { searchPages } from "@/server/services/pages/search-pages";
+import { createWorkspace } from "@/server/services/workspaces/create-workspace";
+import { viewSchema } from "@/validators/databases";
 
 const uid = crypto.randomUUID();
 await db.insert(s.user).values({

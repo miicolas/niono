@@ -6,6 +6,8 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { Toaster } from "sonner";
+import { RootError } from "@/components/root-error";
+import { RootNotFound } from "@/components/root-not-found";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import appCss from "@/styles/globals.css?url";
@@ -32,23 +34,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         },
       ],
     }),
-    errorComponent: () => (
-      <div className="empty-state" role="alert">
-        <h1>Impossible d’afficher cette page</h1>
-        <p>Rechargez l’espace pour retrouver vos contenus.</p>
-        <button onClick={() => window.location.reload()}>
-          Recharger l’espace
-        </button>
-      </div>
-    ),
+    errorComponent: RootError,
     shellComponent: RootDocument,
     component: RootComponent,
-    notFoundComponent: () => (
-      <div className="empty-state">
-        <h1>Page introuvable</h1>
-        <a href="/">Retour à l’espace</a>
-      </div>
-    ),
+    notFoundComponent: RootNotFound,
   }
 );
 

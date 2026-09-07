@@ -1,9 +1,7 @@
 import { marked } from "marked";
-import {
-  type DocumentNode,
-  documentSchema,
-  safeUrl,
-} from "@/validators/contracts";
+import type { DocumentNode } from "@/lib/editor/document-node";
+import { safeUrl } from "@/lib/editor/safe-url";
+import { documentSchema } from "@/validators/documents";
 
 const SKIPPED_TAGS = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT"]);
 export function parseImportedPage(

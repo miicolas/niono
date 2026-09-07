@@ -1,0 +1,1 @@
+export { aiRewriteHandler } from "./rewrite";

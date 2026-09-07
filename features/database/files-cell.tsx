@@ -1,6 +1,6 @@
 import { uploadFile } from "@/features/editor/upload";
 import { reportError } from "@/lib/ui/notifications";
-import type { PropertyValue } from "@/validators/contracts";
+import type { PropertyValue } from "@/validators/databases";
 import type { Property } from "./types";
 export function FilesCell({
   pageId,

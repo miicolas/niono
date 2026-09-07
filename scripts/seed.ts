@@ -1,20 +1,17 @@
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db, pool, schema as s } from "@/db";
-import {
-  addEntry,
-  addProperty,
-  getDatabase,
-  saveView,
-  updateCell,
-} from "@/server/services/databases";
-import {
-  createPage,
-  ensureWorkspace,
-  favoritePage,
-  listPages,
-} from "@/server/services/pages";
-import { type DocumentNode, viewSchema } from "@/validators/contracts";
+import type { DocumentNode } from "@/lib/editor/document-node";
+import { addEntry } from "@/server/services/databases/add-entry";
+import { addProperty } from "@/server/services/databases/add-property";
+import { getDatabase } from "@/server/services/databases/get-database";
+import { saveView } from "@/server/services/databases/save-view";
+import { updateCell } from "@/server/services/databases/update-cell";
+import { createPage } from "@/server/services/pages/create-page";
+import { favoritePage } from "@/server/services/pages/favorite-page";
+import { listPages } from "@/server/services/pages/list-pages";
+import { ensureWorkspace } from "@/server/services/workspaces/ensure-workspace";
+import { viewSchema } from "@/validators/databases";
 
 const email = process.env.DEMO_EMAIL ?? "atelier@digipm.test";
 const password = process.env.DEMO_PASSWORD;

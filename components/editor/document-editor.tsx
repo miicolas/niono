@@ -5,7 +5,6 @@ import {
 } from "@tiptap/extension-details";
 import { DragHandle } from "@tiptap/extension-drag-handle-react";
 import Highlight from "@tiptap/extension-highlight";
-import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
 import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
@@ -63,17 +62,26 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { IMAGE_ACCEPT } from "@/constants/image-types";
+import type { UploadedAsset } from "@/features/editor/upload";
+import { draggingFiles } from "@/lib/editor/dragging-files";
+import { pasteFiles } from "@/lib/editor/paste-files";
+import { transferFiles } from "@/lib/editor/transfer-files";
 import type { DocumentNode } from "@/validators/contracts";
-import { Callout, FileNode, PageLink } from "./extensions";
+import { Callout } from "./extensions/callout";
+import { FileNode } from "./extensions/file-node";
+import { PageLink } from "./extensions/page-link";
+import { UploadPlaceholder } from "./extensions/upload-placeholder";
+import { EditorImage } from "./image/extension";
+import { insertUploads } from "./upload/insert-uploads";
+import { UploadInput } from "./upload-input";
 
 export type DocumentEditorProps = {
   content: DocumentNode;
   editable: boolean;
   onChange: (doc: DocumentNode) => void;
   onReady?: (editor: Editor) => void;
-  onUpload: (
-    file: File
-  ) => Promise<{ url: string; name: string; mime: string }>;
+  onUpload: (file: File) => Promise<UploadedAsset>;
   onAI?: (text: string, instruction: string) => Promise<string>;
   aiAvailable?: boolean;
   onError?: (message: string) => void;
@@ -121,7 +129,8 @@ export function DocumentEditor({
   const [link, setLink] = useState<string | null>(null);
   const [colors, setColors] = useState(false);
   const nodePos = useRef(0);
-  const uploadInput = useRef<HTMLInputElement>(null);
+  const imageInput = useRef<HTMLInputElement>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
   const slashRef = useRef(slash);
   slashRef.current = slash;
   const selectedRef = useRef(selected);
@@ -134,6 +143,7 @@ export function DocumentEditor({
     content: content as JSONContent,
     extensions: [
       StarterKit.configure({
+        dropcursor: { color: "#8ea7bf", width: 3 },
         link: {
           openOnClick: !editable,
           defaultProtocol: "https",
@@ -148,7 +158,8 @@ export function DocumentEditor({
             `Tâche : ${node.textContent || "sans titre"}`,
         },
       }),
-      Image.configure({ allowBase64: false }),
+      EditorImage,
+      UploadPlaceholder,
       TableKit.configure({ table: { resizable: true } }),
       Placeholder.configure({
         placeholder: "Écrivez quelque chose, ou « / » pour les commandes…",
@@ -224,22 +235,48 @@ export function DocumentEditor({
         return false;
       },
       handlePaste: (_view, event) => {
-        const file = Array.from(event.clipboardData?.files ?? [])[0];
-        if (file) {
-          event.preventDefault();
-          void uploadRef.current(file);
-          return true;
+        const files = pasteFiles(event.clipboardData);
+        if (!files.length) {
+          return false;
         }
-        return false;
+        event.preventDefault();
+        void uploadRef.current(files);
+        return true;
       },
-      handleDrop: (_view, event, _slice, moved) => {
-        const file = event.dataTransfer?.files?.[0];
-        if (file && !moved) {
-          event.preventDefault();
-          void uploadRef.current(file);
-          return true;
+      handleDOMEvents: {
+        dragstart: (view) => {
+          view.dom.classList.add("dragging");
+          return false;
+        },
+        dragend: (view) => {
+          view.dom.classList.remove("dragging");
+          return false;
+        },
+        dragover: (view, event) => {
+          if (draggingFiles(event.dataTransfer)) {
+            view.dom.classList.add("file-over");
+          }
+          return false;
+        },
+        dragleave: (view) => {
+          view.dom.classList.remove("file-over");
+          return false;
+        },
+      },
+      handleDrop: (view, event, _slice, moved) => {
+        view.dom.classList.remove("dragging");
+        view.dom.classList.remove("file-over");
+        const files = transferFiles(event.dataTransfer);
+        if (moved || !files.length) {
+          return false;
         }
-        return false;
+        event.preventDefault();
+        const at = view.posAtCoords({
+          left: event.clientX,
+          top: event.clientY,
+        })?.pos;
+        void uploadRef.current(files, at);
+        return true;
       },
     },
     onUpdate: ({ editor }) => {
@@ -315,32 +352,9 @@ export function DocumentEditor({
     return () => window.removeEventListener("click", close);
   }, [blockMenu]);
   const upload = useCallback(
-    async (file: File) => {
-      if (!editor) {
-        return;
-      }
-      try {
-        const result = await onUpload(file);
-        if (result.mime.startsWith("image/")) {
-          editor
-            .chain()
-            .focus()
-            .setImage({ src: result.url, alt: result.name })
-            .run();
-        } else {
-          editor
-            .chain()
-            .focus()
-            .insertContent({
-              type: "file",
-              attrs: { href: result.url, name: result.name },
-            })
-            .run();
-        }
-      } catch (error) {
-        onError?.(
-          error instanceof Error ? error.message : "Import impossible."
-        );
+    async (files: File[], at?: number) => {
+      if (editor) {
+        await insertUploads(editor, files, { at, upload: onUpload, onError });
       }
     },
     [editor, onUpload, onError]
@@ -436,16 +450,16 @@ export function DocumentEditor({
     {
       id: "image",
       label: "Image",
-      description: "Ajoutez une image à votre page",
+      description: "Ajoutez une ou plusieurs images à votre page",
       icon: ImageIcon,
-      run: () => uploadInput.current?.click(),
+      run: () => imageInput.current?.click(),
     },
     {
       id: "file",
       label: "Fichier",
       description: "Joignez un document",
       icon: FileUp,
-      run: () => uploadInput.current?.click(),
+      run: () => fileInput.current?.click(),
     },
     {
       id: "divider",
@@ -556,17 +570,14 @@ export function DocumentEditor({
   }
   return (
     <div className="editor-container">
-      <input
-        hidden
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) {
-            void upload(f);
-          }
-          e.target.value = "";
-        }}
-        ref={uploadInput}
-        type="file"
+      <UploadInput
+        accept={IMAGE_ACCEPT}
+        inputRef={imageInput}
+        onFiles={(files) => void upload(files)}
+      />
+      <UploadInput
+        inputRef={fileInput}
+        onFiles={(files) => void upload(files)}
       />
       {editable && (
         <div className="editor-history-tools">

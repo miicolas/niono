@@ -1,92 +1,68 @@
 import { RPCHandler } from "@orpc/server/fetch";
+import {
+  BatchHandlerPlugin,
+  StrictGetMethodPlugin,
+} from "@orpc/server/plugins";
 import { createFileRoute } from "@tanstack/react-router";
-import { env } from "@/env/server";
-import { router } from "@/server/routers/_app";
-import { MAX_ARCHIVE_BYTES, MAX_RPC_BODY_BYTES } from "@/validators/contracts";
+import { MAX_ARCHIVE_BYTES, MAX_RPC_BODY_BYTES } from "@/constants/limits";
+import { db } from "@/db";
+import { isSameOrigin } from "@/server/lib/assert-same-origin";
+import { readRequestBytes } from "@/server/lib/read-request-bytes";
+import { withRequestLog } from "@/server/lib/request-log";
+import { appRouter } from "@/server/routers/_app";
 
-const handler = new RPCHandler(router);
 const PREFIX = "/api/rpc";
+
+const handler = new RPCHandler(appRouter, {
+  plugins: [new StrictGetMethodPlugin(), new BatchHandlerPlugin()],
+});
+
 /** Archive imports carry the 16 Mo archive plus its JSON envelope. */
 const bodyLimit = (pathname: string) =>
   pathname === `${PREFIX}/transfer/import`
     ? MAX_ARCHIVE_BYTES + MAX_RPC_BODY_BYTES
     : MAX_RPC_BODY_BYTES;
-async function readBody(request: Request, max: number) {
-  const reader = request.body?.getReader();
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  if (reader) {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-        break;
-      }
-      size += value.length;
-      if (size > max) {
-        await reader.cancel();
-        return null;
-      }
-      chunks.push(value);
-    }
+
+async function boundedRequest(request: Request) {
+  if (request.method === "GET") {
+    return request;
   }
-  const body = new Uint8Array(size);
-  let at = 0;
-  for (const chunk of chunks) {
-    body.set(chunk, at);
-    at += chunk.length;
+  if (!isSameOrigin(request)) {
+    return new Response("Forbidden", { status: 403 });
   }
-  return body;
+  const max = bodyLimit(new URL(request.url).pathname);
+  if (Number(request.headers.get("content-length")) > max) {
+    return new Response("Payload too large", { status: 413 });
+  }
+  const body = await readRequestBytes(request, max);
+  if (!body.ok) {
+    return new Response("Payload too large", { status: 413 });
+  }
+  return new Request(request.url, {
+    method: request.method,
+    headers: request.headers,
+    body: body.bytes.slice(),
+  });
 }
+
+function handle({ request }: { request: Request }) {
+  return withRequestLog(request, "rpc", async () => {
+    const bounded = await boundedRequest(request);
+    if (bounded instanceof Response) {
+      return bounded;
+    }
+    const { response } = await handler.handle(bounded, {
+      prefix: PREFIX,
+      context: { headers: request.headers, db },
+    });
+    return response ?? new Response("Not found", { status: 404 });
+  });
+}
+
 export const Route = createFileRoute("/api/rpc/$")({
   server: {
     handlers: {
-      ANY: async ({ request }) => {
-        if (request.method !== "POST") {
-          return new Response("Method not allowed", {
-            status: 405,
-            headers: { Allow: "POST" },
-          });
-        }
-        if (
-          request.headers.get("origin") !== new URL(env.BETTER_AUTH_URL).origin
-        ) {
-          return new Response("Forbidden", { status: 403 });
-        }
-        const pathname = new URL(request.url).pathname;
-        const max = bodyLimit(pathname);
-        if (Number(request.headers.get("content-length")) > max) {
-          return new Response("Payload too large", { status: 413 });
-        }
-        const body = await readBody(request, max);
-        if (!body) {
-          return new Response("Payload too large", { status: 413 });
-        }
-        const started = performance.now();
-        const id = crypto.randomUUID();
-        const { response } = await handler.handle(
-          new Request(request.url, {
-            method: "POST",
-            headers: request.headers,
-            body,
-          }),
-          { prefix: PREFIX, context: { headers: request.headers } }
-        );
-        const result = response ?? new Response("Not found", { status: 404 });
-        result.headers.set("X-Request-Id", id);
-        result.headers.set("Cache-Control", "no-store");
-        if (env.LOG_REQUESTS === "true") {
-          console.info(
-            JSON.stringify({
-              event: "rpc",
-              requestId: id,
-              procedure: pathname.replace(/[^a-zA-Z/]/g, "").slice(0, 100),
-              status: result.status,
-              durationMs: Math.round(performance.now() - started),
-            })
-          );
-        }
-        return result;
-      },
+      ANY: handle,
     },
   },
 });

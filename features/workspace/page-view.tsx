@@ -48,10 +48,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { uploadFile } from "@/features/editor/upload";
 import { useDocumentSave } from "@/features/editor/use-document-save";
+import { documentText } from "@/lib/editor/document-text";
 import { download } from "@/lib/ui/download";
 import { reportError } from "@/lib/ui/notifications";
-import { client } from "@/orpc/client";
-import { documentText } from "@/validators/contracts";
+import { orpcClient } from "@/orpc/client";
 import type { Bootstrap, PageItem } from "./types";
 
 const DatabaseView = lazy(() =>
@@ -77,7 +77,7 @@ type Props = {
 export function PageView(props: Props) {
   const query = useQuery({
     queryKey: ["page", props.pageId],
-    queryFn: () => client.pages.get({ id: props.pageId }),
+    queryFn: () => orpcClient.pages.get({ id: props.pageId }),
     staleTime: 0,
     gcTime: 0,
     refetchOnWindowFocus: false,
@@ -115,7 +115,7 @@ function LoadedPage({
   onReload,
   ...props
 }: Props & {
-  data: Awaited<ReturnType<typeof client.pages.get>>;
+  data: Awaited<ReturnType<typeof orpcClient.pages.get>>;
   onReload: () => Promise<void>;
 }) {
   const { page, document, canEdit } = data;
@@ -142,12 +142,13 @@ function LoadedPage({
   );
   const versions = useQuery({
     queryKey: ["versions", page.id],
-    queryFn: () => client.pages.versions({ id: page.id }),
+    queryFn: () => orpcClient.documents.versions({ id: page.id }),
     enabled: panel === "history",
   });
   const members = useQuery({
     queryKey: ["members", props.workspaceId],
-    queryFn: () => client.workspace.members({ workspaceId: props.workspaceId }),
+    queryFn: () =>
+      orpcClient.workspaces.members({ workspaceId: props.workspaceId }),
     enabled: panel === "share",
   });
   const cache = useQueryClient();
@@ -178,7 +179,7 @@ function LoadedPage({
         ) {
           return true;
         }
-        const result = await client.pages.update({
+        const result = await orpcClient.pages.update({
           id: page.id,
           expectedRevision: metadataRef.current.revision,
           ...changes,
@@ -295,7 +296,7 @@ function LoadedPage({
                   await ensureSaved(
                     "Enregistrez ou résolvez le conflit avant d’exporter l’archive."
                   );
-                  const archive = await client.transfer.export({
+                  const archive = await orpcClient.transfer.export({
                     pageId: page.id,
                     includeAssets: true,
                   });
@@ -439,7 +440,7 @@ function LoadedPage({
                 <Button
                   onClick={async () => {
                     try {
-                      const copy = await client.pages.create({
+                      const copy = await orpcClient.pages.create({
                         workspaceId: props.workspaceId,
                         parentId: page.id,
                         title: `${title} — copie`,
@@ -567,7 +568,13 @@ function LoadedPage({
             content={document.content}
             editable={canEdit}
             onAI={async (text, instruction) =>
-              (await client.ai({ pageId: page.id, text, instruction })).text
+              (
+                await orpcClient.ai.rewrite({
+                  pageId: page.id,
+                  text,
+                  instruction,
+                })
+              ).text
             }
             onChange={save.change}
             onError={(message) => reportError(new Error(message))}
@@ -780,7 +787,7 @@ function LoadedPage({
                       await ensureSaved(
                         "Résolvez la sauvegarde en cours avant de restaurer."
                       );
-                      await client.pages.restore({
+                      await orpcClient.documents.restore({
                         id: page.id,
                         versionId: selectedVersion,
                         expectedRevision: save.revision(),
@@ -841,7 +848,7 @@ function LoadedPage({
               members={members.data ?? []}
               onDone={async () => {
                 setPanel("none");
-                const fresh = await client.pages.get({ id: page.id });
+                const fresh = await orpcClient.pages.get({ id: page.id });
                 metadataRef.current = fresh.page;
                 setMetadata(fresh.page);
                 cache.setQueryData(["page", page.id], fresh);
@@ -903,7 +910,7 @@ function ShareForm({
   pageId: string;
   isPrivate: boolean;
   grants: { userId: string; role: "editor" | "viewer" }[];
-  members: Awaited<ReturnType<typeof client.workspace.members>>;
+  members: Awaited<ReturnType<typeof orpcClient.workspaces.members>>;
   onDone: () => Promise<void>;
 }) {
   const [privateRoot, setPrivateRoot] = useState(isPrivate);
@@ -923,7 +930,7 @@ function ShareForm({
             : [];
         });
         try {
-          await client.pages.share({ pageId, privateRoot, grants });
+          await orpcClient.pages.share({ pageId, privateRoot, grants });
           await onDone();
         } catch (error) {
           reportError(error);

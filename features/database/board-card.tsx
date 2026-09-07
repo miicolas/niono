@@ -1,5 +1,5 @@
 import { useDraggable } from "@dnd-kit/react";
-import type { PropertyValue } from "@/validators/contracts";
+import type { PropertyValue } from "@/validators/databases";
 import type { Property, Row } from "./types";
 export function BoardCard({
   row,

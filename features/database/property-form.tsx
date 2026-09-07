@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { isChoiceType } from "@/lib/databases/property-kinds";
 import { reportError } from "@/lib/ui/notifications";
-import { isChoiceType, type PropertyType } from "@/validators/contracts";
+import type { PropertyType } from "@/validators/databases";
 import { propertyTypeLabels } from "./property-types";
 
 const hasOptions = (type: PropertyType) =>

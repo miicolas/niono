@@ -1,11 +1,7 @@
-import {
-  type Archive,
-  defaultViewConfig,
-  emptyArchive,
-  emptyDocument,
-  type PropertyType,
-  validatePropertyValue,
-} from "@/validators/contracts";
+import { validatePropertyValue } from "@/lib/databases/validate-property-value";
+import { emptyDocument } from "@/lib/editor/empty-document";
+import { defaultViewConfig, type PropertyType } from "@/validators/databases";
+import { type Archive, emptyArchive } from "@/validators/transfer";
 export type Csv = {
   headers: string[];
   rows: string[][];

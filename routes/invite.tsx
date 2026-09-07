@@ -4,7 +4,7 @@ import { useState } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth/client";
-import { client } from "@/orpc/client";
+import { orpcClient } from "@/orpc/client";
 export const Route = createFileRoute("/invite")({
   ssr: false,
   validateSearch: z.object({
@@ -43,7 +43,7 @@ function Invitation() {
               onClick={async () => {
                 setBusy(true);
                 try {
-                  const result = await client.workspace.accept({ token });
+                  const result = await orpcClient.workspaces.accept({ token });
                   await cache.invalidateQueries({ queryKey: ["bootstrap"] });
                   await navigate({
                     to: "/",

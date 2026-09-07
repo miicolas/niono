@@ -1,7 +1,7 @@
 import { del, get, set } from "idb-keyval";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { client } from "@/orpc/client";
-import type { DocumentNode } from "@/validators/contracts";
+import type { DocumentNode } from "@/lib/editor/document-node";
+import { orpcClient } from "@/orpc/client";
 
 type Status = "saved" | "dirty" | "saving" | "error" | "conflict";
 type Draft = { content: DocumentNode; revision: number; time: number };
@@ -84,7 +84,7 @@ export function useDocumentSave(
             generation: s.generation,
           };
           s.pending = pending;
-          const result = await client.pages.save({
+          const result = await orpcClient.documents.save({
             pageId,
             expectedRevision: pending.expectedRevision,
             mutationId: pending.mutationId,

@@ -44,18 +44,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  filterOperatorsFor,
+  isChoiceType,
+} from "@/lib/databases/property-kinds";
 import { download } from "@/lib/ui/download";
 import { reportError } from "@/lib/ui/notifications";
-import { client } from "@/orpc/client";
+import { orpcClient } from "@/orpc/client";
 import {
   defaultViewConfig,
   type FilterOperator,
-  filterOperatorsFor,
-  isChoiceType,
   type PropertyValue,
   type ViewConfig,
   viewSchema,
-} from "@/validators/contracts";
+} from "@/validators/databases";
 import { BoardColumn } from "./board-column";
 import { displayValue } from "./display-value";
 import { PropertyCell } from "./property-cell";
@@ -95,7 +97,7 @@ export function DatabaseView({
   const cache = useQueryClient();
   const metadata = useQuery({
     queryKey: ["database", pageId],
-    queryFn: () => client.databases.get({ id: pageId }),
+    queryFn: () => orpcClient.databases.get({ id: pageId }),
   });
   const routeSearch = useSearch({ from: "/" });
   const navigate = useNavigate();
@@ -140,7 +142,7 @@ export function DatabaseView({
   const rowsQuery = useQuery({
     queryKey: ["entries", pageId, config, query, offset, calendarScope],
     queryFn: () =>
-      client.databases.query({
+      orpcClient.databases.query({
         pageId,
         config,
         query,
@@ -154,7 +156,7 @@ export function DatabaseView({
   const visible = properties.filter((p) => !config.hidden.includes(p.id));
   const members = useQuery({
     queryKey: ["members", workspaceId],
-    queryFn: () => client.workspace.members({ workspaceId }),
+    queryFn: () => orpcClient.workspaces.members({ workspaceId }),
     enabled: properties.some((p) => p.type === "person"),
   });
   const refresh = async () => {
@@ -167,7 +169,7 @@ export function DatabaseView({
     value: PropertyValue
   ) => {
     try {
-      await client.databases.updateCell({
+      await orpcClient.databases.updateCell({
         pageId: row.id,
         propertyId: property.id,
         value,
@@ -182,7 +184,7 @@ export function DatabaseView({
   const add = async () => {
     setBusy(true);
     try {
-      await client.databases.addEntry({ pageId, title: "Nouvelle page" });
+      await orpcClient.databases.addEntry({ pageId, title: "Nouvelle page" });
       await refresh();
     } catch (e) {
       reportError(e);
@@ -217,7 +219,7 @@ export function DatabaseView({
                     return;
                   }
                   try {
-                    await client.pages.update({
+                    await orpcClient.pages.update({
                       id: row.original.id,
                       title: e.target.value,
                       expectedRevision: row.original.revision,
@@ -380,7 +382,7 @@ export function DatabaseView({
                   if (!selected) {
                     return;
                   }
-                  await client.databases.saveView({
+                  await orpcClient.databases.saveView({
                     pageId,
                     id: selected.id,
                     name: selected.name,
@@ -709,7 +711,7 @@ export function DatabaseView({
           </DialogHeader>
           <PropertyForm
             onSubmit={async (values) => {
-              await client.databases.addProperty({ pageId, ...values });
+              await orpcClient.databases.addProperty({ pageId, ...values });
               await metadata.refetch();
               setPanel("none");
             }}
@@ -737,7 +739,7 @@ export function DatabaseView({
               e.preventDefault();
               const f = new FormData(e.currentTarget);
               try {
-                const view = await client.databases.saveView({
+                const view = await orpcClient.databases.saveView({
                   pageId,
                   name: String(f.get("name")),
                   config: viewSchema.parse({ layout: f.get("layout") }),

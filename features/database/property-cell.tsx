@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { isChoiceType, type PropertyValue } from "@/validators/contracts";
+import { isChoiceType } from "@/lib/databases/property-kinds";
+import type { PropertyValue } from "@/validators/databases";
 import { displayValue } from "./display-value";
 import { FilesCell } from "./files-cell";
 import type { Members, Property } from "./types";

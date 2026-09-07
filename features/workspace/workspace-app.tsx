@@ -28,7 +28,7 @@ import {
 import { authClient } from "@/lib/auth/client";
 import { reportError } from "@/lib/ui/notifications";
 import { useUI } from "@/lib/ui/store";
-import { client } from "@/orpc/client";
+import { orpcClient } from "@/orpc/client";
 import { PageView } from "./page-view";
 import { sortedFavorites } from "./sorted-favorites";
 import type { PageItem } from "./types";
@@ -44,19 +44,19 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
   const cache = useQueryClient();
   const bootstrap = useQuery({
     queryKey: ["bootstrap"],
-    queryFn: () => client.bootstrap(),
+    queryFn: () => orpcClient.workspaces.bootstrap(),
     retry: false,
   });
   const workspaceId = search.w ?? bootstrap.data?.workspaceId;
   const pageId = search.p ?? null;
   const pages = useQuery({
     queryKey: ["pages", workspaceId],
-    queryFn: () => client.pages.list({ workspaceId: workspaceId! }),
+    queryFn: () => orpcClient.pages.list({ workspaceId: workspaceId! }),
     enabled: !!workspaceId,
   });
   const recent = useQuery({
     queryKey: ["recent", workspaceId],
-    queryFn: () => client.pages.recent({ workspaceId: workspaceId! }),
+    queryFn: () => orpcClient.pages.recent({ workspaceId: workspaceId! }),
     enabled: !!workspaceId && !pageId,
   });
   const [moving, setMoving] = useState<PageItem | null>(null);
@@ -129,7 +129,7 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
     kind: "page" | "database" = "page"
   ) => {
     try {
-      const page = await client.pages.create({
+      const page = await orpcClient.pages.create({
         workspaceId: workspaceId!,
         parentId,
         kind,
@@ -147,7 +147,7 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
     audience?: { id: string; access: "edit" | "read" }[]
   ) => {
     try {
-      await client.pages.move({
+      await orpcClient.pages.move({
         ...target,
         confirmAudienceChange: !!audience,
         confirmedAudience: audience,
@@ -163,7 +163,7 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
   /** Previews the audience change and asks for confirmation before moving when someone gains access. */
   const requestMove = async (target: MoveTarget) => {
     try {
-      const preview = await client.pages.previewMove({
+      const preview = await orpcClient.pages.previewMove({
         id: target.id,
         parentId: target.parentId,
       });
@@ -191,7 +191,7 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
             favorites[at]!,
             favorites[at - 1]!,
           ];
-          await client.pages.reorderFavorites({
+          await orpcClient.pages.reorderFavorites({
             workspaceId: workspaceId!,
             ids: favorites.map((p) => p.id),
           });
@@ -200,7 +200,10 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
         return;
       }
       if (action === "favorite") {
-        await client.pages.favorite({ id: page.id, enabled: !page.favorite });
+        await orpcClient.pages.favorite({
+          id: page.id,
+          enabled: !page.favorite,
+        });
       }
       if (action === "duplicate") {
         if (
@@ -210,7 +213,7 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
         ) {
           return;
         }
-        const result = await client.pages.duplicate({ id: page.id });
+        const result = await orpcClient.pages.duplicate({ id: page.id });
         await refresh();
         await go(result.id);
         return;
@@ -223,7 +226,7 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
         ) {
           return;
         }
-        await client.pages.trash({ id: page.id });
+        await orpcClient.pages.trash({ id: page.id });
         if (pageId === page.id) {
           await go(null);
         }
@@ -231,7 +234,7 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
           action: {
             label: "Annuler",
             onClick: async () => {
-              await client.pages.trash({ id: page.id, restore: true });
+              await orpcClient.pages.trash({ id: page.id, restore: true });
               await refresh();
             },
           },
@@ -284,7 +287,7 @@ export function WorkspaceApp({ search }: { search: WorkspaceSearch }) {
         onNavigate={(id) => void go(id)}
         onNewWorkspace={async (name) => {
           try {
-            const w = await client.workspace.create({ name });
+            const w = await orpcClient.workspaces.create({ name });
             await cache.invalidateQueries({ queryKey: ["bootstrap"] });
             await go(null, w.id);
           } catch (e) {

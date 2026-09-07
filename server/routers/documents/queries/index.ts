@@ -1,0 +1,1 @@
+export { documentsVersionsHandler } from "./versions";

@@ -1,4 +1,4 @@
-import type { PropertyValue } from "@/validators/contracts";
+import type { PropertyValue } from "@/validators/databases";
 import type { Members, Property } from "./types";
 export function displayValue(
   property: Property,

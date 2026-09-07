@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { propertyTypeLabels } from "@/features/database/property-types";
 import { reportError } from "@/lib/ui/notifications";
-import { client } from "@/orpc/client";
-import type { Archive, PropertyType } from "@/validators/contracts";
+import { orpcClient } from "@/orpc/client";
+import type { PropertyType } from "@/validators/databases";
+import type { Archive } from "@/validators/transfer";
 import { type Csv, csvArchive, csvPropertyTypes } from "./csv-archive";
 import { parseImportFile } from "./parse-import-file";
 export function ImportPanel({
@@ -157,7 +158,7 @@ export function ImportPanel({
                   const bundle = archive ?? csvArchive(csv!, name);
                   setArchive(bundle);
                   setCsv(null);
-                  const imported = await client.transfer.import({
+                  const imported = await orpcClient.transfer.import({
                     workspaceId,
                     importId,
                     archive: bundle,

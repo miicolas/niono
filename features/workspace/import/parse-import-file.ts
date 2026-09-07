@@ -1,10 +1,10 @@
 import Papa from "papaparse";
+import { MAX_ARCHIVE_BYTES } from "@/constants/limits";
 import {
   type Archive,
   archiveSchema,
   emptyArchive,
-  MAX_ARCHIVE_BYTES,
-} from "@/validators/contracts";
+} from "@/validators/transfer";
 import type { Csv } from "./csv-archive";
 import { parseImportedPage } from "./parse-imported-page";
 export type ParsedImport = {

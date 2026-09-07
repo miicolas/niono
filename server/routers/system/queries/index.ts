@@ -1,0 +1,1 @@
+export { systemHealthHandler } from "./health";

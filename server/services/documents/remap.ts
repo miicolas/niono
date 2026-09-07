@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { DocumentNode, ViewConfig } from "@/validators/contracts";
+import type { DocumentNode } from "@/lib/editor/document-node";
+import type { ViewConfig } from "@/validators/databases";
 
 const ASSET_PREFIX = "/api/assets/";
 type IdMap = ReadonlyMap<string, string>;

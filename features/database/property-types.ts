@@ -1,4 +1,4 @@
-import type { PropertyType } from "@/validators/contracts";
+import type { PropertyType } from "@/validators/databases";
 export const propertyTypeLabels: Record<PropertyType, string> = {
   text: "Texte",
   number: "Nombre",

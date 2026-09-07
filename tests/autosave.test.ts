@@ -6,7 +6,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { useDocumentSave } from "@/features/editor/use-document-save";
 
 const save = vi.hoisted(() => vi.fn());
-vi.mock("@/orpc/client", () => ({ client: { pages: { save } } }));
+vi.mock("@/orpc/client", () => ({ orpcClient: { documents: { save } } }));
 const doc = (text: string) => ({
   type: "doc",
   content: [{ type: "paragraph", content: [{ type: "text", text }] }],

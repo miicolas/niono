@@ -1,8 +1,8 @@
 import { useDroppable } from "@dnd-kit/react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { client } from "@/orpc/client";
-import type { PropertyValue, ViewConfig } from "@/validators/contracts";
+import { orpcClient } from "@/orpc/client";
+import type { PropertyValue, ViewConfig } from "@/validators/databases";
 import { BoardCard } from "./board-card";
 import type { Property, Row } from "./types";
 export function BoardColumn({
@@ -34,7 +34,7 @@ export function BoardColumn({
     queryKey: ["entries", pageId, "group", id, property.id, config, query],
     initialPageParam: 0,
     queryFn: ({ pageParam }) =>
-      client.databases.query({
+      orpcClient.databases.query({
         pageId,
         config,
         query,

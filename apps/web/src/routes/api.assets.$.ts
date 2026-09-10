@@ -20,7 +20,7 @@ export const Route = createFileRoute("/api/assets/$")({
                 "Content-Length": String(bytes.length),
                 "X-Content-Type-Options": "nosniff",
                 "Cache-Control": "private, no-store",
-                "Content-Disposition": `${asset.mime.startsWith("image/") ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(asset.name)}`,
+                "Content-Disposition": `${asset.mime.startsWith("image/") && !new URL(request.url).searchParams.has("download") ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(asset.name)}`,
                 "Content-Security-Policy": "default-src 'none'; sandbox",
               },
             });

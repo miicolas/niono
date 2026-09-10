@@ -46,11 +46,23 @@ Une seule sauvegarde en vol par page ; coalescer les frappes suivantes. En confl
 
 ## État UI, bases de données et composants
 
+**Décision ajoutée à la demande de l’utilisateur.** Les raccourcis utilisent TanStack Hotkeys, avec `@tanstack/react-hotkeys` **0.10.0** dans l’application et `@tanstack/hotkeys` **0.8.0** dans l’éditeur, versions exactes verrouillées dans `pnpm-lock.yaml`. Les hooks React inscrivent et nettoient les commandes de navigation ; `matchesKeyboardEvent` conserve la commande de l’assistant dans le traitement clavier ProseMirror. `Mod` correspond à Command sur macOS et Control sur Windows/Linux ; `formatForDisplay` adapte les libellés. [Guide React officiel](https://tanstack.com/hotkeys/latest/docs/framework/react/guides/hotkeys), [formatage officiel](https://tanstack.com/hotkeys/latest/docs/framework/react/guides/formatting-display), [version React 0.10.0](https://www.npmjs.com/package/@tanstack/react-hotkeys/v/0.10.0), [version core 0.8.0](https://www.npmjs.com/package/@tanstack/hotkeys/v/0.8.0).
+
+`Mod+K` ouvre la recherche, y compris pendant la saisie, et ferme la navigation mobile. `Mod+B` bascule la navigation hors des champs et des zones éditables pour préserver le gras Tiptap. `Mod+J` agit sur la sélection de l’éditeur éditable et ignore la répétition et la composition IME. Les touches locales des champs, les menus slash et les commandes natives de formatage restent gérés par leurs composants. Le libellé de recherche est rempli après hydratation pour éviter une divergence entre serveur et navigateur.
+
 **Décision.** Zustand contient largeur de sidebar, panneaux ouverts et préférences locales. Tiptap conserve sélection et transactions ; Query conserve les données serveur ; Router conserve les filtres et vues partageables dans l'URL. Un store utilisé pendant le SSR doit être isolé par requête ; les préférences persistées doivent être hydratées sans divergence du premier rendu. [Zustand et SSR](https://zustand.docs.pmnd.rs/learn/guides/nextjs.html), [persistance et hydratation](https://zustand.docs.pmnd.rs/reference/integrations/persisting-store-data).
 
 **Fait vérifié.** Table gère modèles de lignes, colonnes et état ; Virtual ne rend que les éléments visibles. La virtualisation ne réduit ni les données à télécharger ni le coût des tris et filtres serveur. **Décision :** pagination et opérations serveur via oRPC pour les grandes bases, puis virtualisation des résultats chargés. Ne pas virtualiser naïvement un document `contenteditable`. [Traitement serveur Table](https://tanstack.com/table/latest/docs/guide/client-side-vs-server-side), [Virtual et Table](https://tanstack.com/table/latest/docs/framework/react/guide/virtualization).
 
 **Décision.** Utiliser shadcn/ui pour les primitives et construire le thème papier dans les tokens et composants du projet. Le guide officiel couvre TanStack Router ; vérifier les adaptations Start, alias et styles au bootstrap. [Installation shadcn](https://ui.shadcn.com/docs/installation/tanstack-router).
+
+## Graphiques de bases — TanStack Charts 0.16.0
+
+**Décision ajoutée à la demande de l’utilisateur.** Les graphiques sont des vues enregistrées d’une base, avec filtres, propriété de regroupement, calcul, tri et présentation. Les interactions de référence sont les quatre dispositions, les réglages locaux au graphique et l’ouverture des pages d’une catégorie. [Aide officielle Notion](https://www.notion.com/help/charts).
+
+**Version vérifiée.** `@tanstack/charts` **0.16.0** est verrouillé exactement. Son adaptateur React s’importe depuis `@tanstack/charts/react` ; `barX`, `barY`, `lineY` et `dot` couvrent les graphiques cartésiens, tandis que `pie`, `polar` et `radialArc` proviennent de `@tanstack/charts/polar`. Les définitions acceptent les infobulles, la navigation au clavier et `onSelect`. La documentation embarquée dans cette version a été consultée, car le site `latest` peut avancer indépendamment. [Présentation officielle](https://tanstack.com/charts/latest), [documentation de la version verrouillée](https://github.com/TanStack/charts/tree/v0.16.0/docs).
+
+Les agrégations sont calculées par PostgreSQL sur toutes les entrées autorisées et filtrées, avant la limite de catégories. Le graphe n’agrège jamais uniquement la page de 50 entrées affichées dans une table. TanStack Charts reste isolé dans le rendu chargé à l’ouverture d’une vue graphique. Aucun service externe ni synchronisation en temps réel n’est ajouté. Voir [la validation des graphiques](../validation/charts.md).
 
 ## Vérifications exigées avant validation du socle
 
@@ -61,3 +73,21 @@ Une seule sauvegarde en vol par page ; coalescer les frappes suivantes. En confl
 5. Mesurer une grande page et une base paginée ; vérifier navigation clavier, focus et rendu hydraté.
 
 Ces contrôles sont des critères pour le bootstrap et restent **à exécuter**.
+
+## Better Auth Organization — version installée 1.7.3
+
+Le plugin Organization et son client gèrent organisations, membres, rôles, invitations et équipes. Les équipes s’activent avec `teams.enabled`; les rôles de contenu se déclarent avec `createAccessControl`, `defaultStatements` et les rôles fournis par le plugin. `requireEmailVerificationOnInvitation: true` impose la vérification de l’email. [Documentation officielle](https://better-auth.com/docs/plugins/organization).
+
+La configuration et le schéma ont été vérifiés contre le code distribué de **better-auth 1.7.3** et **@better-auth/drizzle-adapter 1.7.3**, verrouillés dans pnpm-lock.yaml. Cette version exige notamment les champs internes `team.memberCount` et `teamMember.membershipKey`, en plus de `session.activeOrganizationId` / `activeTeamId`. L’adaptateur Drizzle est configuré avec `transaction: true`. `listTeamMembers` exige l’appartenance à l’équipe ; l’interface conserve cette règle native, y compris pour un administrateur.
+
+## Collaboration temps réel — versions verrouillées
+
+Tiptap Collaboration et Collaboration Caret **3.31.3**, Yjs **13.6.27**, y-prosemirror **1.3.7**, y-protocols **1.0.6** et lib0 **0.2.114** sont verrouillés. Les implémentations installées ont été consultées, notamment le contrat `provider.on/off("synced")` de UniqueID 3.31.3 et la liaison d’awareness de Collaboration Caret. StarterKit désactive son UndoRedo en collaboration ; l’historique Yjs annule les modifications locales. [Guide Tiptap](https://tiptap.dev/docs/hocuspocus/guides/collaborative-editing), [présence Yjs](https://docs.yjs.dev/getting-started/adding-awareness), [binding ProseMirror](https://github.com/yjs/y-prosemirror/tree/v1.3.7).
+
+Le serveur conserve les mises à jour binaires et utilise `updateYFragment` sur le document existant pour les remplacements explicites, jamais une conversion JSON pour réhydrater un CRDT actif. Les positions des sélections restent relatives au document. Les notifications SQL sont émises par les triggers transactionnels : un rollback ne produit pas de notification. [NOTIFY PostgreSQL 17](https://www.postgresql.org/docs/17/sql-notify.html), [LISTEN PostgreSQL 17](https://www.postgresql.org/docs/17/sql-listen.html).
+
+## Médias et mentions — 9 septembre 2026
+
+Tiptap **3.31.3** : les NodeViews React conservent les nœuds du schéma et appellent `updateAttributes`/`deleteNode` pour les commandes. Les attributs média sont partagés avec le schéma serveur et la projection collaborative ; la suppression conserve les fichiers nécessaires à l’historique. [NodeViews React officielles](https://tiptap.dev/docs/editor/extensions/custom-extensions/node-views/react), [comportements des médias Notion](https://www.notion.com/help/images-files-and-media).
+
+Nitro **3.0.260610-beta** : son middleware Vite écarte les requêtes `Sec-Fetch-Dest: image` lorsqu’elles ne correspondent qu’au renderer générique. La route explicite `/api/assets/**` délègue via l’API exportée `fetchViteEnv("ssr", req)` au transport Start authentifié. Ce comportement et l’API ont été vérifiés dans le code de la version installée, puis reproduits et testés par HTTP. [Présentation officielle Nitro](https://nitro.build/). Voir [la validation](../validation/editor-media.md).

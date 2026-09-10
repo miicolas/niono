@@ -14,6 +14,7 @@ import { Route as InviteRouteImport } from './routes/invite'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ApiHealthRouteImport } from './routes/api.health'
+import { Route as ApiRealtimeRouteImport } from './routes/api/realtime'
 import { Route as ApiAssetsSplatRouteImport } from './routes/api.assets.$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth.$'
 import { Route as ApiRpcSplatRouteImport } from './routes/api/rpc.$'
@@ -43,6 +44,11 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
   path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiRealtimeRoute = ApiRealtimeRouteImport.update({
+  id: '/api/realtime',
+  path: '/api/realtime',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAssetsSplatRoute = ApiAssetsSplatRouteImport.update({
   id: '/api/assets/$',
   path: '/api/assets/$',
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/realtime': typeof ApiRealtimeRoute
   '/api/assets/$': typeof ApiAssetsSplatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/realtime': typeof ApiRealtimeRoute
   '/api/assets/$': typeof ApiAssetsSplatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/realtime': typeof ApiRealtimeRoute
   '/api/assets/$': typeof ApiAssetsSplatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/api/health'
+    | '/api/realtime'
     | '/api/assets/$'
     | '/api/auth/$'
     | '/api/rpc/$'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/api/health'
+    | '/api/realtime'
     | '/api/assets/$'
     | '/api/auth/$'
     | '/api/rpc/$'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/api/health'
+    | '/api/realtime'
     | '/api/assets/$'
     | '/api/auth/$'
     | '/api/rpc/$'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  ApiRealtimeRoute: typeof ApiRealtimeRoute
   ApiAssetsSplatRoute: typeof ApiAssetsSplatRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiRpcSplatRoute: typeof ApiRpcSplatRoute
@@ -171,6 +184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/realtime': {
+      id: '/api/realtime'
+      path: '/api/realtime'
+      fullPath: '/api/realtime'
+      preLoaderRoute: typeof ApiRealtimeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/assets/$': {
       id: '/api/assets/$'
       path: '/api/assets/$'
@@ -201,6 +221,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ApiRealtimeRoute: ApiRealtimeRoute,
   ApiAssetsSplatRoute: ApiAssetsSplatRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiRpcSplatRoute: ApiRpcSplatRoute,

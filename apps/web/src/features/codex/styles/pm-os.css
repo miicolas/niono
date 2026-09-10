@@ -1,0 +1,250 @@
+.pm-toolbar {
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
+  display: grid;
+  gap: 8px;
+}
+.pm-subject-row,
+.pm-toolbar-actions,
+.pm-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pm-subject-row > [data-slot="select-trigger"] {
+  flex: 1;
+  min-width: 0;
+}
+.pm-toolbar-actions {
+  justify-content: space-between;
+}
+.pm-count {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.pm-caption {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.pm-catalog {
+  width: min(380px, calc(100vw - 32px));
+  padding: 8px;
+}
+.pm-search {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 4px;
+}
+.pm-catalog-results {
+  max-height: min(430px, 55dvh);
+  overflow-y: auto;
+  margin-top: 8px;
+}
+.pm-workflow {
+  text-align: left;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  width: 100%;
+  border-radius: 6px;
+}
+.pm-workflow:hover,
+.pm-workflow:focus-visible {
+  background: var(--muted);
+}
+.pm-workflow strong {
+  font-size: 13px;
+}
+.pm-workflow span {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.pm-workflow small {
+  color: var(--muted-foreground);
+  font-size: 10px;
+}
+.pm-questionnaire {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--background);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.pm-questionnaire h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.pm-questionnaire [data-slot="questionnaire-actions"] {
+  flex-wrap: wrap;
+}
+.pm-questionnaire [data-slot="questionnaire-choice"] {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.pm-answer-summary {
+  display: grid;
+  gap: 12px;
+  font-size: 13px;
+}
+.pm-answer-summary dt {
+  font-weight: 500;
+}
+.pm-answer-summary dd {
+  color: var(--muted-foreground);
+  margin-top: 4px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.pm-error {
+  color: var(--destructive);
+  font-size: 12px;
+}
+.pm-run-content {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+.pm-artifact {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.pm-artifact-details {
+  flex: 1;
+  min-width: 150px;
+  display: grid;
+  gap: 3px;
+}
+.pm-artifact-details strong {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.pm-artifact-details span {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.pm-icon-link {
+  padding: 7px;
+  border-radius: 6px;
+}
+.pm-icon-link:hover {
+  background: var(--muted);
+}
+.pm-artifact-dialog {
+  width: min(1000px, calc(100vw - 32px));
+  max-width: 1000px;
+  max-height: 92dvh;
+  overflow-y: auto;
+}
+.pm-context-dialog {
+  max-height: 88dvh;
+  overflow-y: auto;
+}
+.pm-artifact-image {
+  max-height: 65dvh;
+  object-fit: contain;
+}
+.pm-artifact-text {
+  max-height: 60dvh;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  background: var(--muted);
+  padding: 16px;
+  border-radius: 8px;
+}
+.pm-prototype {
+  width: 100%;
+  height: min(65dvh, 650px);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: white;
+}
+.pm-download {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.pm-reference-settings {
+  display: grid;
+  gap: 12px;
+}
+.pm-references {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+}
+.pm-references li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pm-references a {
+  font-size: 13px;
+  text-decoration: underline;
+}
+.pm-references span {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.pm-continue {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  font-size: 12px;
+}
+.pm-run-steps,
+.pm-review {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.pm-run-steps summary,
+.pm-review summary {
+  cursor: pointer;
+  padding: 6px 0;
+}
+.pm-run-steps ol {
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+.pm-run-steps li small {
+  display: block;
+}
+.pm-review p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 350px;
+  overflow-y: auto;
+  color: var(--foreground);
+}
+@media (max-width: 600px) {
+  .pm-toolbar {
+    padding: 8px 12px;
+  }
+  .pm-questionnaire {
+    padding: 12px;
+  }
+  .pm-prototype {
+    height: 65dvh;
+  }
+}

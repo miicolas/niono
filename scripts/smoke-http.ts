@@ -107,6 +107,50 @@ assert.equal(
   404,
 );
 assert.equal((await fetch(base + asset.url)).status, 401);
+// Browser image requests must reach the authenticated route in development too.
+const imageBytes = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+  "base64",
+);
+const imageUpload = await fetch(`${base}/api/assets/${page.id}`, {
+  method: "POST",
+  headers: { ...alice.headers, "X-File-Name": "test.png" },
+  body: imageBytes,
+});
+assert.equal(imageUpload.status, 200);
+const imageAsset = (await imageUpload.json()) as { url: string };
+const imageHeaders = {
+  ...alice.headers,
+  Accept: "image/avif,image/webp,image/png,image/*,*/*;q=0.8",
+  "Sec-Fetch-Dest": "image",
+  "Sec-Fetch-Mode": "no-cors",
+  "Sec-Fetch-Site": "same-origin",
+};
+const imageResponse = await fetch(base + imageAsset.url, {
+  headers: imageHeaders,
+});
+assert.equal(
+  imageResponse.status,
+  200,
+  "Une balise img peut charger la ressource",
+);
+assert.equal(imageResponse.headers.get("Content-Type"), "image/png");
+assert.deepEqual(Buffer.from(await imageResponse.arrayBuffer()), imageBytes);
+const imageDownload = await fetch(base + imageAsset.url + "?download=1", {
+  headers: alice.headers,
+});
+assert.match(
+  imageDownload.headers.get("Content-Disposition") || "",
+  /^attachment;/,
+);
+assert.equal(
+  (
+    await fetch(base + imageAsset.url, {
+      headers: { ...imageHeaders, Cookie: bob.headers.Cookie },
+    })
+  ).status,
+  404,
+);
 assert.equal(
   (
     await fetch(`${base}/api/rpc/pages/trash`, {
@@ -151,6 +195,7 @@ console.log(
         "cellule",
         "export-import",
         "fichier privé",
+        "image privée et téléchargement",
         "CSRF",
         "déconnexion",
       ],

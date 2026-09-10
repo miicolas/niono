@@ -1,0 +1,79 @@
+@media (hover: hover) {
+  .subtle-button:hover,
+  .workspace-switcher:hover {
+    background: var(--accent);
+  }
+  .recent-card:hover {
+    border-color: #64645c;
+    background: var(--muted);
+  }
+}
+@media (max-width: 1000px) {
+  .document-toc {
+    display: none;
+  }
+  .document-content {
+    padding-left: 40px;
+    padding-right: 35px;
+  }
+  .save-status {
+    font-size: 10px;
+  }
+}
+@media (max-width: 700px) {
+  .document-content {
+    padding: 35px 24px 90px;
+  }
+  .page-title {
+    font-size: 30px;
+  }
+  .document-icon {
+    font-size: 40px;
+  }
+  .document-cover {
+    height: 130px;
+  }
+  .document-meta {
+    margin-bottom: 20px;
+  }
+  .breadcrumbs .current {
+    max-width: 140px;
+  }
+  .topbar {
+    padding: 0 10px;
+    gap: 7px;
+  }
+  .topbar-actions {
+    gap: 2px;
+  }
+  .icon-button {
+    min-width: 36px;
+    height: 36px;
+  }
+  .row-action {
+    opacity: 1 !important;
+  }
+  .home {
+    padding: 35px 22px;
+  }
+  .recent-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .auth-form input,
+  input,
+  [data-slot="select-trigger"] {
+    font-size: 16px !important;
+  }
+  .tree-row {
+    min-height: 36px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

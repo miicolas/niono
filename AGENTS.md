@@ -24,6 +24,8 @@ Un seul contexte métier, documenté dans `CONTEXT.md`, avec décisions dans `do
 
 ## Implémentation
 
+Pour toute modification de code, appliquer [les règles de structure](docs/agents/code-structure.md) : 300 lignes maximum par fichier maintenu, une fonction autonome par fichier, logique commune mutualisée et variations exprimées par des props typées. Le contrôle de structure doit passer avant livraison.
+
 Appliquer les skills installés quand leur fonction correspond au travail en cours. Une installation n'impose pas d'exécuter tous les workflows. Pour les intégrations, consulter `docs/research/technical-sources.md`, puis les documents officiels de la version effectivement verrouillée.
 
 Valider les changements de comportement par les interfaces publiques des modules et les parcours utilisateur. Les tickets précisent les cas d'échec à couvrir. Une fonctionnalité et ses contrôles nécessaires doivent fonctionner avant que son ticket passe à `done`.

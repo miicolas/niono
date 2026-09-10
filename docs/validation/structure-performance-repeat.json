@@ -1,0 +1,19 @@
+{
+  "date": "2026-09-06T21:03:15.521Z",
+  "runtime": "v25.8.0",
+  "scope": "Construction en mémoire des réponses de table ; hors SQL, réseau et rendu React",
+  "rows": 100,
+  "propertiesPerRow": 100,
+  "values": 10000,
+  "samples": 30,
+  "equivalent": true,
+  "before": {
+    "p50ms": 8.859,
+    "p95ms": 9.15
+  },
+  "after": {
+    "p50ms": 0.397,
+    "p95ms": 0.538
+  },
+  "medianSpeedup": 22.31
+}

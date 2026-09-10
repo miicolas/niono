@@ -1,4 +1,42 @@
+@import "./features/realtime/realtime.css";
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "./typeset.css";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
 @import "./theme.css";
 @import "./editor.css";
+@import "./components/content-state.css";
+@import "./features/codex/codex.css";
 @custom-variant dark (&:is(.dark *));
+
+:root {
+  --font-geist: "Geist Variable", sans-serif;
+  --font-geist-mono: "Geist Mono Variable", monospace;
+}
+
+.typeset-article {
+  --typeset-font-body: var(--font-geist);
+  --typeset-font-heading: var(--font-geist);
+  --typeset-font-mono: var(--font-geist-mono);
+  --typeset-size: 15px;
+  --typeset-leading: 1.75;
+  --typeset-flow: 1.25em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="dialog-content"],
+  [data-slot="dialog-overlay"],
+  [data-slot="alert-dialog-content"],
+  [data-slot="alert-dialog-overlay"],
+  [data-slot="sheet-content"],
+  [data-slot="sheet-overlay"],
+  [data-slot="drawer-content"],
+  [data-slot="drawer-overlay"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="popover-content"],
+  [data-slot="tooltip-content"] {
+    animation: none !important;
+    transition: none !important;
+  }
+}

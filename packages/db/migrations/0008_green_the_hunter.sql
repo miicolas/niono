@@ -1,0 +1,1 @@
+ALTER TABLE "codex_conversations" ADD COLUMN "pm_history" jsonb DEFAULT '[]'::jsonb NOT NULL;

@@ -10,7 +10,10 @@ const config = defineConfig({
   resolve: { tsconfigPaths: true, dedupe: ["react", "react-dom"] },
   plugins: [
     tailwindcss(),
-    nitro({ rollupConfig: { external: [/^@sentry\//] } }),
+    nitro({
+      routes: { "/api/assets/**": "./server/asset-route.ts" },
+      rollupConfig: { external: [/^@sentry\//] },
+    }),
 
     tanstackStart(),
     viteReact(),

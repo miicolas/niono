@@ -108,7 +108,7 @@ try {
   throw error;
 } finally {
   console.log("Suppression du jeu synthétique.");
-  await db.delete(s.workspaces).where(eq(s.workspaces.id, workspace.id));
+  await db.delete(s.organization).where(eq(s.organization.id, workspace.id));
   await db.delete(s.user).where(eq(s.user.id, uid));
   await pool.end();
 }

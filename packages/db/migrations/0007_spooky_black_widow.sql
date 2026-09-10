@@ -1,0 +1,1 @@
+ALTER TABLE "pm_runs" ADD COLUMN "active_milliseconds" integer DEFAULT 0 NOT NULL;

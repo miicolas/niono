@@ -1,0 +1,159 @@
+.app-state {
+  display: flex;
+  min-height: 100svh;
+  flex-direction: column;
+  background: var(--background);
+}
+.app-state-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 24px 32px;
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.35px;
+}
+.app-state-brand .brand-mark {
+  width: 26px;
+  height: 26px;
+}
+.app-state-main {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  padding: 32px 24px 112px;
+}
+.content-state,
+.loading-label {
+  --state-secondary: color-mix(
+    in srgb,
+    var(--muted-foreground) 85%,
+    var(--foreground)
+  );
+}
+.content-state {
+  width: 100%;
+  min-height: min(520px, 70svh);
+  gap: 24px;
+  padding: 64px 24px;
+  border: 0;
+}
+.app-state-main > .content-state {
+  min-height: 0;
+  padding: 0;
+}
+.content-state-copy {
+  max-width: 400px;
+  gap: 12px;
+}
+.content-state .content-state-title {
+  margin: 0;
+  color: var(--foreground);
+  font-size: clamp(22px, 2.5vw, 28px);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.8px;
+  text-wrap: balance;
+}
+.content-state-description {
+  margin: 0;
+  color: var(--state-secondary);
+  font-size: 14px;
+  line-height: 1.7;
+  text-wrap: pretty;
+}
+.state-illustration {
+  position: relative;
+  display: grid;
+  width: 96px;
+  height: 96px;
+  place-items: center;
+  margin-bottom: 4px;
+  color: var(--muted-foreground);
+  user-select: none;
+  pointer-events: none;
+}
+.state-illustration::before,
+.state-illustration-sheet {
+  width: 62px;
+  height: 74px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+.state-illustration::before {
+  position: absolute;
+  content: "";
+  transform: translate(-9px, -3px) rotate(-12deg);
+  background: var(--muted);
+}
+.state-illustration-sheet {
+  position: relative;
+  display: grid;
+  place-items: center;
+  transform: rotate(5deg);
+}
+.state-illustration-sheet svg {
+  width: 28px;
+  height: 28px;
+}
+.content-state-actions {
+  max-width: none;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.content-state-actions [data-slot="button"] {
+  min-height: 40px;
+  height: auto;
+  padding: 10px 16px;
+  transition-property: background-color, color, box-shadow;
+}
+.content-state-actions [data-variant="ghost"] {
+  color: var(--state-secondary);
+}
+.content-state-actions [data-variant="default"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.content-state-compact {
+  min-height: 0;
+  padding: 28px 16px;
+  gap: 16px;
+}
+.content-state-compact .state-illustration {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 0;
+}
+.content-state-compact .state-illustration::before {
+  display: none;
+}
+.content-state-compact .state-illustration-sheet {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  transform: none;
+  background: var(--muted);
+}
+.content-state-compact .state-illustration-sheet svg {
+  width: 21px;
+  height: 21px;
+}
+.content-state-compact .content-state-copy {
+  gap: 6px;
+}
+.content-state-compact .content-state-title {
+  font-size: 16px;
+  letter-spacing: -0.3px;
+}
+.content-state-compact .content-state-description {
+  font-size: 13px;
+}
+.content-state-compact .content-state-actions [data-slot="button"] {
+  min-height: 36px;
+  padding: 8px 12px;
+  font-size: 12px;
+}

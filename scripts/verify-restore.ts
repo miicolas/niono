@@ -48,6 +48,15 @@ const tar = spawnSync(
   { stdio: "inherit" },
 );
 if (tar.status !== 0) throw new Error("Fichiers non restaurés.");
+if (manifest.codexFolder) {
+  const codexTar = spawnSync(
+    "tar",
+    ["-xzf", join(backup, "codex.tar.gz"), "-C", destination],
+    { stdio: "inherit" },
+  );
+  if (codexTar.status !== 0) throw new Error("Stockage Codex non restauré.");
+  await access(join(destination, manifest.codexFolder));
+}
 const keys = run([
   "psql",
   "-U",

@@ -1,0 +1,143 @@
+.database-chart {
+  padding: 24px 4px 8px;
+  min-width: 0;
+}
+.chart-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.chart-heading h3 {
+  font-size: 15px;
+  font-weight: 550;
+  margin: 0 0 4px;
+}
+.chart-heading h3 span,
+.chart-heading p {
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+.chart-heading p {
+  font-size: 12px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.chart-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.chart-placeholder {
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+}
+.chart-placeholder > span {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.chart-scroll {
+  overflow: auto;
+  max-height: 560px;
+}
+.chart-plot {
+  position: relative;
+  color: var(--muted-foreground);
+  --ts-chart-tooltip-background: var(--popover);
+  --ts-chart-tooltip-color: var(--foreground);
+  --ts-chart-tooltip-border: 1px solid var(--border);
+}
+.chart-plot .ts-chart:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+.chart-donut-total {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.chart-donut-total strong {
+  color: var(--foreground);
+  font-size: 32px;
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+}
+.chart-donut-total span {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 12px;
+  margin: 14px 0;
+  font-size: 12px;
+}
+.chart-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.chart-legend-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+.chart-swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.chart-data {
+  border-top: 1px solid var(--border);
+  margin-top: 20px;
+  padding-top: 10px;
+}
+.chart-values th:not(:first-child),
+.chart-values td:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.chart-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 55svh;
+  overflow-y: auto;
+}
+@media (pointer: coarse) {
+  .chart-actions button,
+  .chart-settings button,
+  .chart-legend button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+@media (max-width: 640px) {
+  .chart-heading {
+    gap: 12px;
+  }
+  .chart-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .chart-settings [role="combobox"] {
+    font-size: 16px;
+  }
+}

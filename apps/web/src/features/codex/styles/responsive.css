@@ -1,0 +1,146 @@
+@media (hover: hover) and (pointer: fine) {
+  .codex-suggestions button:hover {
+    background: var(--muted);
+    border-color: var(--border);
+  }
+  .codex-suggestions button:hover .codex-suggestion-arrow {
+    opacity: 1;
+    transform: translate(1px, -1px);
+  }
+  .codex-presets button:hover {
+    background: var(--muted);
+  }
+}
+@media (min-width: 1200px) {
+  body:has(.codex-panel[data-state="open"]) .app-main {
+    margin-right: 460px;
+  }
+}
+@media (max-width: 767px) {
+  .codex-panel:is([data-slot="sheet-content"], [data-slot="drawer-content"]) {
+    width: 100vw;
+    max-width: none;
+    height: 100dvh;
+  }
+  .codex-panel button,
+  .codex-panel [data-slot="select-trigger"] {
+    min-height: 44px;
+  }
+  .codex-header-actions button,
+  .codex-history > button:not([data-slot="select-trigger"]),
+  .codex-selection button,
+  .codex-composer-toolbar button {
+    min-width: 44px;
+  }
+  .codex-history [data-slot="select-trigger"],
+  .codex-composer textarea {
+    font-size: 16px;
+  }
+  .codex-welcome {
+    padding-top: 12px;
+  }
+  .codex-welcome h2 {
+    font-size: 28px;
+  }
+  .codex-composer-toolbar > span {
+    font-size: 9px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .codex-panel:is([data-slot="sheet-content"], [data-slot="drawer-content"]),
+  .codex-panel .animate-spin {
+    animation: none;
+    transition: none;
+  }
+  .codex-panel *,
+  .codex-panel *::before,
+  .codex-panel *::after {
+    transition-duration: 0s !important;
+  }
+  .codex-panel .codex-suggestion-arrow,
+  .codex-panel .codex-composer-toolbar button:active {
+    transform: none !important;
+  }
+}
+.codex-message-text {
+  white-space: normal;
+}
+.codex-message-text > * + * {
+  margin-top: 10px;
+}
+.codex-message-text p {
+  white-space: pre-wrap;
+}
+.codex-message-text h3 {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.codex-message-text ul,
+.codex-message-text ol {
+  padding-left: 20px;
+}
+.codex-message-text ul {
+  list-style: disc;
+}
+.codex-message-text ol {
+  list-style: decimal;
+}
+.codex-message-text li + li {
+  margin-top: 4px;
+}
+.codex-message-text code {
+  border-radius: 4px;
+  background: var(--muted);
+  padding: 2px 4px;
+  font-family: var(--font-geist-mono);
+  font-size: 0.85em;
+}
+.codex-message-text pre {
+  padding: 12px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--muted);
+}
+.codex-message-text pre code {
+  padding: 0;
+  white-space: pre;
+}
+.codex-message-text blockquote {
+  border-left: 2px solid var(--border);
+  padding-left: 12px;
+  color: var(--muted-foreground);
+}
+.codex-table-scroll {
+  overflow-x: auto;
+}
+.codex-message-text table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.codex-message-text th,
+.codex-message-text td {
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  text-align: left;
+}
+@media (max-height: 780px), (max-width: 767px) {
+  .codex-welcome {
+    padding: 8px 0 20px;
+  }
+  .codex-welcome-mark {
+    display: none;
+  }
+  .codex-welcome h2 {
+    font-size: 26px;
+  }
+  .codex-suggestions {
+    margin-top: 20px;
+    gap: 2px;
+  }
+  .codex-suggestions button {
+    padding: 10px 8px;
+  }
+}

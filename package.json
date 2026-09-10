@@ -7,7 +7,7 @@
     "dev": "dotenv -e .env -- pnpm --filter @digipm/web dev",
     "build": "pnpm --filter @digipm/web build",
     "start": "dotenv -e .env -- pnpm --filter @digipm/web start",
-    "typecheck": "pnpm -r typecheck && tsc -p tsconfig.verification.json",
+    "typecheck": "pnpm check:structure && pnpm -r typecheck && tsc -p tsconfig.verification.json",
     "test": "dotenv -e .env -- vitest run",
     "db:generate": "dotenv -e .env -- drizzle-kit generate",
     "db:migrate": "dotenv -e .env -- tsx packages/db/migrate.ts",
@@ -18,15 +18,23 @@
     "backup:verify": "dotenv -e .env -- tsx scripts/verify-restore.ts",
     "smoke:http": "tsx scripts/smoke-http.ts",
     "smoke:auth": "tsx scripts/smoke-auth.ts",
-    "benchmark": "dotenv -e .env -- tsx scripts/benchmark.ts"
+    "smoke:realtime": "tsx scripts/smoke-realtime.ts",
+    "benchmark": "dotenv -e .env -- tsx scripts/benchmark.ts",
+    "pm-os:import": "dotenv -e .env -- tsx scripts/import-pm-os.ts",
+    "check:structure": "tsx scripts/check-structure.ts",
+    "pm-os:worker": "dotenv -e .env -- node packages/pm-worker/server.mjs",
+    "pm-os:runner": "docker build -t digipm-pm-runner:1 packages/pm-worker/runner"
   },
   "devDependencies": {
     "@orpc/client": "1.15.0",
     "@orpc/server": "1.15.0",
+    "@tanstack/react-hotkeys": "0.10.0",
+    "@tanstack/react-query": "5.102.8",
     "@testing-library/react": "16.3.0",
     "@testing-library/user-event": "14.6.7",
     "@types/node": "26.4.1",
     "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
     "dotenv-cli": "11.0.0",
     "drizzle-kit": "0.31.10",
     "drizzle-orm": "0.45.2",
@@ -38,7 +46,9 @@
     "react-dom": "19.2.8",
     "tsx": "4.23.13",
     "typescript": "6.0.3",
-    "vitest": "4.1.11"
+    "vitest": "4.1.11",
+    "yjs": "13.6.27",
+    "zod": "4.5.4"
   },
   "license": "AGPL-3.0-or-later",
   "engines": {

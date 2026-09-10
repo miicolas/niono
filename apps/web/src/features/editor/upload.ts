@@ -1,8 +1,13 @@
-export async function uploadFile(pageId: string, file: File) {
+export async function uploadFile(
+  pageId: string,
+  file: File,
+  signal?: AbortSignal,
+) {
   if (file.size > 20 * 1024 * 1024)
     throw new Error("Le fichier dépasse la limite de 20 Mo.");
   const response = await fetch(`/api/assets/${pageId}`, {
     method: "POST",
+    signal,
     body: file,
     headers: {
       "Content-Type": "application/octet-stream",
@@ -15,5 +20,6 @@ export async function uploadFile(pageId: string, file: File) {
     url: string;
     name: string;
     mime: string;
+    size?: number;
   };
 }

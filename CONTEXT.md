@@ -10,6 +10,10 @@ Un espace de travail réunit des documents et des informations structurées que 
 
 **Membre** : appartenance d'un utilisateur à un espace de travail, avec un rôle.
 
+**Équipe (Team)** : groupe de membres à l’intérieur d’un espace de travail. Un membre peut appartenir à plusieurs équipes du même espace.
+
+**Invitation** : proposition de rejoindre un espace de travail, adressée à un email, avec un rôle et éventuellement une équipe.
+
 **Page** : document identifiable pouvant contenir des blocs, des sous-pages et des propriétés. Une entrée de base est également une page.
 
 **Bloc** : élément de contenu d'une page, tel qu'un paragraphe, une liste, une image ou une référence à une autre page.
@@ -29,8 +33,30 @@ _Éviter_ : table SQL, liste de lignes sans pages.
 
 **Révision** : état enregistré d'un contenu, permettant d'identifier des modifications concurrentes et de restaurer une version antérieure.
 
+**Participant à une page** : membre qui consulte une page ouverte. Sa présence, son curseur et sa sélection sont visibles aux autres participants autorisés sur cette page.
+
+**Édition simultanée** : modifications apportées par plusieurs participants au même document ou à son titre et réunies dans un état commun.
+
 **Brouillon local** : modification conservée sur l'appareil qui n'a pas encore été confirmée comme enregistrée sur le serveur.
 
 **Partage** : droit accordé à une personne, à des membres ou au public pour consulter ou modifier un contenu.
 
 **Corbeille** : ensemble de pages retirées de la navigation et récupérables pendant leur durée de conservation.
+
+**Conversation avec Codex** : échange personnel entre un utilisateur et son assistant, rattaché à un espace et aux pages consultées.
+
+**Proposition** : modification préparée par l’assistant, présentée à l’utilisateur avant application ou refus. Une proposition ne modifie pas le contenu tant qu’elle n’est pas appliquée.
+
+**Source consultée** : page dont le contenu ou les informations ont contribué à une conversation. La reprise de cette conversation nécessite de conserver l’accès à ses sources.
+
+**Sujet** : initiative ou fonctionnalité suivie dans un espace, avec ses sources, décisions et livrables. Plusieurs sujets partagent le contexte de l’entreprise.
+
+**Contexte de référence** : informations validées que l’assistant peut réutiliser pour l’entreprise ou un sujet.
+
+**Workflow PM-OS** : méthode guidée de travail produit, associant contexte, questions, livrables et suites proposées.
+
+**Livrable** : document, analyse ou prototype produit pour un sujet, consultable dans une page et téléchargeable dans un format adapté.
+
+**Brouillon de livrable** : livrable préparé par l’assistant, enregistré dans l’espace et encore distinct du contexte de référence.
+
+**Questionnaire de l’assistant** : ensemble de questions personnelles à une conversation, dont les réponses permettent de poursuivre le travail.

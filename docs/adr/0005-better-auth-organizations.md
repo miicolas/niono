@@ -1,0 +1,9 @@
+# Better Auth possède les espaces, membres, invitations et équipes
+
+À la demande de l’utilisateur, Better Auth Organization est l’unique responsable de ces objets et de leur cycle de vie. Un espace DigiPM correspond à une organisation Better Auth ; les rôles, invitations, équipes et appartenances passent par son plugin, son adaptateur Drizzle et ses endpoints `/api/auth/organization/*`. La gestion locale concurrente `workspace_members` / `invitations` et ses procédures oRPC est supprimée.
+
+Les rôles historiques `owner`, `editor`, `viewer` sont déclarés dans le contrôle d’accès Better Auth ; `admin` et `member` conservent les capacités du plugin. La permission de contenu est déclarée dans ce même contrôle d’accès, avec refus par défaut des rôles inconnus. Les pages et leurs restrictions de partage restent des objets métier ; elles lisent l’appartenance Better Auth dans leur transaction, sans deuxième système de membres.
+
+La migration renomme les espaces et appartenances en conservant leurs identifiants, utilisateurs, rôles et contenus. Les identifiants d’organisation restent des UUID pour préserver les références des pages ; Better Auth utilise son générateur UUID. Les anciennes invitations acceptées restent dans l’historique, les autres sont annulées : leurs jetons hachés ne peuvent pas devenir des liens d’invitation Better Auth et doivent être réémis. Une fonction PostgreSQL sérialise les changements de membres avec les écritures de contenu pour que la révocation et la sauvegarde partagent le même verrou d’organisation.
+
+L’initialisation de la première page est un hook de création d’organisation. L’onboarding appelle Better Auth sur la transaction qui sérialise la création du premier espace. La vérification d’email des invités est exigée par l’option native `requireEmailVerificationOnInvitation`.

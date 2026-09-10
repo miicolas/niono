@@ -1,0 +1,1 @@
+ALTER TABLE "page_documents" ADD COLUMN "collaboration_state" text;

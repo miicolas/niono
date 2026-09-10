@@ -25,6 +25,7 @@ services:
         condition: service_healthy
     restart: "no"
   app:
+    networks: [default, pm_private]
     build:
       context: .
       target: app
@@ -44,12 +45,36 @@ services:
       AI_MODEL: ${AI_MODEL:-}
       AI_API_KEY: ${AI_API_KEY:-}
       LOG_REQUESTS: "true"
+      PM_OS_DATA_DIR: /data/pm-os
+      PM_OS_RUN_TIMEOUT_MS: ${PM_OS_RUN_TIMEOUT_MS:-1800000}
+      PM_WORKER_URL: http://pm-worker:8090
+      PM_WORKER_TOKEN: ${PM_WORKER_TOKEN:?Set a private random worker token}
     volumes:
       - assets_data:/data/assets
+      - codex_data:/data/codex
+      - pm_os_data:/data/pm-os:ro
     depends_on:
       migrate:
         condition: service_completed_successfully
     restart: unless-stopped
+  pm-worker:
+    build: ./packages/pm-worker
+    environment:
+      PM_WORKER_HOST: 0.0.0.0
+      PM_WORKER_TOKEN: ${PM_WORKER_TOKEN:?Set a private random worker token}
+      PM_RUNNER_IMAGE: ${PM_RUNNER_IMAGE:-digipm-pm-runner:1}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - pm_worker_data:/data/jobs
+    networks: [pm_private]
+    restart: unless-stopped
+    mem_limit: 1024m
+networks:
+  pm_private:
+    internal: true
 volumes:
   postgres_data:
   assets_data:
+  codex_data:
+  pm_os_data:
+  pm_worker_data:

@@ -1,0 +1,209 @@
+.settings-workspace-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.settings-workspace-card > div {
+  min-width: 0;
+  flex: 1;
+}
+.settings-workspace-card strong {
+  font-size: 13px;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+.settings-workspace-card p {
+  margin-top: 2px;
+  font-size: 12px;
+}
+.settings-workspace-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  font-size: 18px;
+}
+.settings-badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 5px;
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.settings-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--muted-foreground);
+}
+.settings-note > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.settings-note p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.65;
+}
+.settings-profile-summary {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 28px;
+}
+.settings-profile-summary > div {
+  min-width: 0;
+}
+.settings-profile-summary strong {
+  display: block;
+  font-size: 16px;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+.settings-profile-summary p {
+  margin-top: 3px;
+  font-size: 12px;
+}
+.settings-profile-avatar {
+  width: 56px;
+  height: 56px;
+  font-size: 23px;
+}
+.settings-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+.settings-form label,
+.settings-field {
+  display: grid;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.settings-form input {
+  height: 40px;
+  font-size: 13px;
+  font-weight: 400;
+}
+.settings-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+.settings-form .settings-field-error {
+  color: var(--color-destructive);
+  font-size: 12px;
+  margin-top: -8px;
+}
+.settings-email-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.settings-email-row > svg {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+.settings-email-row > span:first-of-type {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.settings-member-list {
+  margin-top: 12px;
+}
+.settings-member {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 74px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.settings-member-identity {
+  flex: 1;
+  min-width: 0;
+}
+.settings-member-identity strong {
+  font-size: 13px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.settings-member-identity p {
+  margin-top: 3px;
+  font-size: 12px;
+}
+.settings-member > [data-slot="select-trigger"] {
+  flex-shrink: 0;
+  max-width: 160px;
+  font-size: 12px;
+}
+.settings-invite-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 160px;
+  gap: 12px;
+}
+.settings-invite-fields [data-slot="select-trigger"] {
+  width: 100%;
+  height: 40px;
+  font-size: 13px;
+}
+.settings-connection {
+  margin-bottom: 24px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.settings-connection .codex-settings {
+  padding: 0;
+  gap: 16px;
+}
+.settings-connection .codex-settings h3,
+.settings-connection .codex-settings p {
+  margin: 0;
+}
+.settings-connection .codex-settings > button,
+.settings-connection .codex-settings > a {
+  width: fit-content;
+  max-width: 100%;
+  white-space: normal;
+  height: auto;
+  min-height: 36px;
+}
+.settings-import-heading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 22px;
+}
+.settings-page .panel-form input[type="file"] {
+  width: 100%;
+  height: auto;
+  min-height: 64px;
+  padding: 18px 14px;
+  border-style: dashed;
+  background: var(--card);
+  font-size: 12px;
+}
+.settings-page .panel-form input[type="file"]::file-selector-button {
+  margin-right: 10px;
+}

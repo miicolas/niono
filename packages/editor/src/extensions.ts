@@ -1,4 +1,6 @@
+import { safeUrl } from "@digipm/contracts";
 import { Node, mergeAttributes } from "@tiptap/core";
+import { mediaAttributes } from "./media/media-attributes";
 export const Callout = Node.create({
   name: "callout",
   group: "block",
@@ -33,6 +35,7 @@ export const FileNode = Node.create({
   draggable: true,
   addAttributes() {
     return {
+      ...mediaAttributes(),
       href: { default: "" },
       name: { default: "Fichier" },
       id: { default: null },
@@ -46,6 +49,7 @@ export const FileNode = Node.create({
       "a",
       mergeAttributes(HTMLAttributes, {
         "data-file": "",
+        href: safeUrl(HTMLAttributes.href) ? HTMLAttributes.href : "",
         class: "editor-file",
         target: "_blank",
         rel: "noopener noreferrer",

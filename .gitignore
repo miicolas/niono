@@ -12,3 +12,16 @@ test-results/
 playwright-report/
 .DS_Store
 *.log
+
+# Local backups, generated references, and diagnostic work files.
+.scratch/backups/
+.scratch/better-auth-schema/
+.scratch/refactor/
+.scratch/shadcn/
+.scratch/ui-states/
+.scratch/realtime/
+.scratch/codex/*.ts
+.scratch/codex/*.mjs
+.scratch/verify-organization-migration.ts
+apps/web/.scratch/
+output/

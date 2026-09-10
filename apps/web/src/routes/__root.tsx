@@ -1,13 +1,15 @@
+import { RootDocument } from "./../components/root/root-document";
+import { Button } from "@/components/ui/button";
 import {
-  HeadContent,
-  Scripts,
-  createRootRouteWithContext,
-  Outlet,
-} from "@tanstack/react-router";
+  AppState,
+  ContentState,
+  RequestError,
+} from "@/components/content-state";
+import { ArrowLeft, FileQuestion } from "lucide-react";
+import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "sonner";
-
 import appCss from "../styles.css?url";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
@@ -27,27 +29,56 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       ],
       links: [
         {
+          rel: "icon",
+          type: "image/png",
+          sizes: "32x32",
+          href: "/brand/favicon-32.png",
+        },
+        {
+          rel: "icon",
+          type: "image/png",
+          sizes: "192x192",
+          href: "/brand/icon-192.png",
+        },
+        {
+          rel: "apple-touch-icon",
+          sizes: "180x180",
+          href: "/brand/apple-touch-icon.png",
+        },
+        {
           rel: "stylesheet",
           href: appCss,
         },
       ],
     }),
-    errorComponent: () => (
-      <div className="empty-state" role="alert">
-        <h1>Impossible d’afficher cette page</h1>
-        <p>Rechargez l’espace pour retrouver vos contenus.</p>
-        <button onClick={() => window.location.reload()}>
-          Recharger l’espace
-        </button>
-      </div>
+    errorComponent: ({ error }) => (
+      <RequestError
+        error={error}
+        fullPage
+        title="Impossible d’afficher cette page"
+        description="Un problème a interrompu l’ouverture de la page. Vous pouvez la recharger ou revenir à l’accueil."
+        onRetry={() => window.location.reload()}
+        onHome={() => window.location.assign("/")}
+      />
     ),
     shellComponent: RootDocument,
     component: RootComponent,
     notFoundComponent: () => (
-      <div className="empty-state">
-        <h1>Page introuvable</h1>
-        <a href="/">Retour à l’espace</a>
-      </div>
+      <AppState>
+        <ContentState
+          icon={FileQuestion}
+          headingLevel={1}
+          title="Cette page est introuvable"
+          description="Ce lien ne mène à aucune page. Vérifiez l’adresse ou retrouvez vos contenus depuis votre espace."
+        >
+          <Button asChild>
+            <a href="/">
+              <ArrowLeft aria-hidden="true" />
+              Retour à l’espace
+            </a>
+          </Button>
+        </ContentState>
+      </AppState>
     ),
   },
 );
@@ -61,20 +92,5 @@ function RootComponent() {
         <Toaster theme="dark" position="bottom-right" richColors />
       </TooltipProvider>
     </QueryClientProvider>
-  );
-}
-
-function RootDocument({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="fr" className="dark" suppressHydrationWarning>
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-
-        <Scripts />
-      </body>
-    </html>
   );
 }

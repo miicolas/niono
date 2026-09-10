@@ -17,6 +17,8 @@ Ces références ne permettent pas de conclure sur tous les détails d'interacti
 
 ## Base shadcn imposée
 
+Tous les contrôles de l’interface utilisent les composants shadcn correspondants : Select pour les choix simples, Popover et Checkbox pour les choix multiples, Calendar dans un Popover pour les dates, Slider pour les curseurs et Collapsible pour les panneaux repliables. Les menus et sélecteurs natifs du navigateur sont exclus, y compris le composant Native Select. Les champs utilisent Input et Textarea ; les cases des listes de tâches de l’éditeur utilisent également Checkbox. Les éléments masqués nécessaires aux formulaires et à l’ouverture du sélecteur de fichiers système restent des détails techniques. Les libellés utilisent Label ou FieldLabel, les formulaires TanStack Form avec Zod et Field/FieldError, et les tableaux TanStack Table avec les primitives Table shadcn. Les boutons, badges, avatars, onglets, états vides et messages d’erreur utilisent les composants shadcn correspondants. Les menus de l’éditeur composent Command, DropdownMenu et Popover, sans remplacer le modèle documentaire Tiptap.
+
 La navigation doit partir du bloc **sidebar-10**, demandé par l'utilisateur. Registre officiel inspecté : [sidebar-10 JSON](https://ui.shadcn.com/r/styles/new-york/sidebar-10.json). Il expose AppSidebar, NavMain, NavFavorites, NavWorkspaces, NavSecondary, TeamSwitcher et NavActions, avec les primitives sidebar, breadcrumb, separator, popover, collapsible et dropdown-menu.
 
 Commande à exécuter **dans l'application TanStack configurée**, au ticket 01 :

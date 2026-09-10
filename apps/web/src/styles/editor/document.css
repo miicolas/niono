@@ -1,0 +1,226 @@
+.editor-container {
+  position: relative;
+  line-height: 1.75;
+}
+.digipm-editor {
+  outline: none;
+  min-height: 340px;
+  font-size: 16px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  caret-color: var(--foreground);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+.digipm-editor ::selection {
+  background: color-mix(in srgb, var(--primary) 28%, transparent);
+}
+.digipm-editor p {
+  margin: 4px 0;
+}
+.digipm-editor h1 {
+  font-size: 29px;
+  line-height: 1.35;
+  font-weight: 650;
+  letter-spacing: -0.6px;
+  margin: 32px 0 12px;
+}
+.digipm-editor h2 {
+  font-size: 23px;
+  line-height: 1.4;
+  font-weight: 620;
+  letter-spacing: -0.4px;
+  margin: 28px 0 12px;
+}
+.digipm-editor h3 {
+  font-size: 19px;
+  line-height: 1.45;
+  font-weight: 600;
+  margin: 22px 0 8px;
+}
+.digipm-editor h1,
+.digipm-editor h2,
+.digipm-editor h3 {
+  text-wrap: balance;
+}
+.digipm-editor ul,
+.digipm-editor ol {
+  padding-left: 25px;
+  margin: 8px 0;
+  list-style: disc;
+}
+.digipm-editor ol {
+  list-style: decimal;
+}
+.digipm-editor li > p {
+  margin: 3px 0;
+}
+.digipm-editor ul[data-type="taskList"] {
+  list-style: none;
+  padding: 0;
+}
+.digipm-editor [data-type="taskItem"][data-checked] {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.digipm-editor [data-type="taskItem"][data-checked] > .task-checkbox {
+  padding-top: 4px;
+  flex: 0 0 auto;
+}
+.digipm-editor [data-type="taskItem"][data-checked] > div {
+  flex: 1;
+  min-width: 0;
+}
+.digipm-editor
+  [data-type="taskItem"][data-checked="true"]
+  > div
+  > [data-node-view-content-react]
+  > p {
+  color: var(--muted-foreground);
+  text-decoration: line-through;
+}
+.digipm-editor blockquote {
+  border-left: 3px solid var(--foreground);
+  padding: 3px 0 3px 17px;
+  margin: 22px 0;
+}
+.digipm-editor code {
+  background: var(--muted);
+  color: #d59786;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: 0.87em;
+  font-family: "SFMono-Regular", Consolas, monospace;
+}
+.digipm-editor pre {
+  padding: 20px 24px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  overflow: auto;
+  margin: 18px 0;
+  white-space: pre;
+}
+.digipm-editor pre code {
+  padding: 0;
+  background: none;
+  color: var(--foreground);
+  font-size: 13px;
+}
+.digipm-editor hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 28px 0;
+}
+.digipm-editor a {
+  color: #91b0cf;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.digipm-editor img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 5px;
+  margin: 18px auto;
+  display: block;
+}
+.digipm-editor .ProseMirror-selectednode {
+  outline: 2px solid #809aaa;
+  outline-offset: 2px;
+}
+.digipm-editor p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--muted-foreground);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  font-style: normal;
+}
+.digipm-editor table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  overflow: hidden;
+}
+.digipm-editor td,
+.digipm-editor th {
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  min-width: 80px;
+  position: relative;
+  vertical-align: top;
+}
+.digipm-editor th {
+  background: var(--muted);
+  font-weight: 600;
+  text-align: left;
+}
+.digipm-editor .tableWrapper {
+  overflow-x: auto;
+  margin: 20px 0;
+}
+.digipm-editor .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #829eb82b;
+  pointer-events: none;
+}
+.digipm-editor .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #8ea7bf;
+}
+.resize-cursor {
+  cursor: col-resize;
+}
+.digipm-editor aside[data-callout] {
+  display: flex;
+  gap: 14px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 18px;
+  margin: 18px 0;
+}
+.digipm-editor aside[data-callout] > div {
+  flex: 1;
+}
+.digipm-editor a[data-file] {
+  display: block;
+  padding: 13px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin: 12px 0;
+}
+.digipm-editor div[data-type="details"] {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0;
+}
+.digipm-editor div[data-type="details"] > button {
+  width: 20px;
+  height: 27px;
+  flex-shrink: 0;
+  background: transparent;
+  border: 0;
+}
+.digipm-editor div[data-type="details"] > button::before {
+  content: "▸";
+}
+.digipm-editor div[data-type="details"].is-open > button::before {
+  content: "▾";
+}
+.digipm-editor summary {
+  font-weight: 550;
+  list-style: none;
+}
+.digipm-editor div[data-type="detailsContent"] {
+  padding-left: 5px;
+}

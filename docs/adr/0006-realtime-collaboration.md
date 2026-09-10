@@ -1,0 +1,7 @@
+# Collaboration Yjs durable et notifications PostgreSQL
+
+La demande explicite de collaboration complète remplace l’exclusion du temps réel de la V1. Chaque page conserve désormais un document Yjs durable réunissant son titre et son fragment Tiptap. PostgreSQL enregistre cet état binaire et ses projections JSON/texte dans la même transaction autorisée. La conversion initiale du JSON est sérialisée et effectuée une seule fois ; restaurations et propositions Codex modifient le CRDT existant sans recréer ses identifiants.
+
+Les clients échangent des mises à jour CRDT par oRPC et reçoivent immédiatement les notifications par un flux SSE authentifié, alimenté par des triggers PostgreSQL et LISTEN/NOTIFY. Cette combinaison couvre aussi les mutations Better Auth et les workers, fonctionne entre processus sans Redis ni affinité de session, et conserve un unique port HTTP. Une reconnexion relit les données et échange les différences CRDT : les notifications ne sont pas le stockage durable.
+
+La présence et les sélections sont éphémères, rattachées à la session Better Auth et à une page autorisée, avec expiration. Aucun contenu ni identifiant de page privée n’est diffusé dans les invalidations générales. Chaque écriture et chaque émission réévaluent les droits ; la suppression d’une session ou d’un partage coupe le flux. Les propriétés et vues structurées gardent leurs contrôles de révision ; une collision sur la même valeur reste explicite. Les brouillons CRDT locaux sont fusionnés atomiquement entre onglets dans IndexedDB.

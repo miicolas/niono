@@ -1,0 +1,121 @@
+.home {
+  max-width: 900px;
+  padding: 72px 45px;
+  margin: auto;
+}
+.home h1 {
+  font-size: 31px;
+  font-weight: 600;
+  letter-spacing: -1px;
+}
+.home-section {
+  margin-top: 38px;
+}
+.section-label {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted-foreground);
+  margin: 20px 0;
+}
+.recent-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.recent-card {
+  border: 1px solid var(--border);
+  padding: 22px 20px;
+  border-radius: 9px;
+  background: var(--card);
+  text-align: left;
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.recent-card .card-icon {
+  font-size: 25px;
+}
+.recent-card strong {
+  font-size: 13px;
+  font-weight: 550;
+}
+.recent-card small {
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.list-row:hover {
+  background: var(--muted);
+}
+.list-row .row-title {
+  flex: 1;
+  min-width: 0;
+}
+.list-row small {
+  color: var(--muted-foreground);
+}
+.search-input {
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: 17px;
+  padding: 20px;
+  width: 100%;
+  border-bottom: 1px solid var(--border);
+}
+.search-result {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border-radius: 6px;
+  padding: 12px;
+}
+.search-result small {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  margin-left: 27px;
+  margin-top: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.settings-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+.settings-tabs button {
+  padding: 5px 12px;
+  border-radius: 5px;
+  color: var(--muted-foreground);
+}
+.settings-tabs button.active {
+  background: var(--accent);
+  color: var(--foreground);
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.settings-row p {
+  margin: 4px 0 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}

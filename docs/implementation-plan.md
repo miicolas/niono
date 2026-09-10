@@ -6,7 +6,7 @@ Date : 6 septembre 2026. Statut : plan de référence ; implémentation fonction
 
 Construire une application open source auto-hébergeable dont les interactions, l'organisation des pages et les bases de données reproduisent progressivement l'expérience Notion. Nom de travail : **DigiPM**. Interface française par défaut, textes externalisés pour une traduction future. Licence proposée pour notre code : **AGPL-3.0-or-later** ; conserver les notices des dépendances et publier les instructions d'auto-hébergement lors de la livraison.
 
-Demandes fermes : TanStack, Drizzle, PostgreSQL, shadcn/ui **sidebar-10**, oRPC, Zustand, Tiptap et déplacement des textes/blocs. **Better Auth avec email et mot de passe uniquement. Aucun temps réel pour l'instant.** Les choix restants sont tranchés par l'agent, comme demandé.
+Demandes fermes : TanStack, Drizzle, PostgreSQL, shadcn/ui **sidebar-10**, oRPC, Zustand, Tiptap et déplacement des textes/blocs. **Better Auth avec email et mot de passe ; organisations, membres, rôles, invitations et équipes exclusivement via son plugin Organization. Collaboration en temps réel sur les titres et documents, présence et propagation des changements dans l’espace.** Les choix restants sont tranchés par l'agent, comme demandé.
 
 « Exactement Notion » devient une matrice de parité mesurable. Le produit Notion couvre aussi IA, agents, automatisations, publications et applications Mail/Calendar ; ces domaines ne sont pas assimilés à un éditeur terminé. Le [centre d'aide officiel](https://www.notion.com/help) constitue l'inventaire externe, figé pour ce plan à la date ci-dessus. Chaque lot doit être démontrable ; les extensions restent visibles dans la feuille de route.
 
@@ -21,16 +21,18 @@ Ce document conserve les objectifs initiaux. Le rapport de livraison distingue l
 | Navigation | TanStack Router | Routes typées, loaders, paramètres de recherche validés |
 | Données client | TanStack Query + intégration oRPC | Cache serveur, mutations, invalidation ciblée |
 | Backend métier | oRPC, ligne stable cohérente | Contrats typés, validation, autorisation, erreurs |
-| Authentification | Better Auth, adaptateur Drizzle PostgreSQL | Inscription, connexion, session, réinitialisation du mot de passe |
+| Authentification | Better Auth, adaptateur Drizzle PostgreSQL | Inscription, connexion, session, réinitialisation du mot de passe, organisations, membres, invitations et équipes |
 | Persistance | PostgreSQL + Drizzle ORM / Kit | Schéma, contraintes, transactions, migrations relues |
 | UI | Tailwind CSS + shadcn/ui + Lucide | Composants accessibles et tokens papier |
 | Navigation visuelle | **shadcn sidebar-10** | Sidebar, favoris, arbre de pages, switcher, menus |
-| Éditeur | Tiptap 3 + ProseMirror, extensions open source | Blocs, sélection, historique local, commandes |
+| Éditeur | Tiptap 3 + ProseMirror + Yjs | Blocs, sélection partagée, annulation locale, édition simultanée |
 | Drag de texte / blocs | DragHandle Tiptap / transactions ProseMirror | Déplacement sémantique dans le document |
 | Drag hors éditeur | **dnd-kit**, API stable vérifiée au bootstrap | Arbre de pages, favoris, cartes et colonnes |
 | Tables | TanStack Table + Virtual | Table éditable, colonnes et fenêtrage des lignes |
+| Graphiques | TanStack Charts 0.16.0 | Vues de base : barres verticales/horizontales, courbes et anneaux, agrégations serveur et réglages enregistrés |
 | État UI partagé | Zustand | Panneaux, palette de commandes, préférences |
-| Formulaires | React Hook Form + Zod | Authentification et formulaires de paramètres |
+| Raccourcis clavier | TanStack Hotkeys | Commandes de navigation et détection des raccourcis de l’éditeur |
+| Formulaires | TanStack Form + Zod | Authentification et formulaires de paramètres |
 | Validation | Zod | Entrées, filtres, documents, configuration |
 | Fichiers | Adaptateur stockage local puis S3 compatible | Upload autorisé et accès privé |
 | Recherche V1 | PostgreSQL full-text + pg_trgm | Titres, contenu, pertinence et tolérance limitée |
@@ -41,7 +43,7 @@ Ce document conserve les objectifs initiaux. Le rapport de livraison distingue l
 
 Les versions exactes seront sélectionnées et verrouillées au ticket 01 après compilation de l'ensemble. Les docs Start consultées indiquent encore un statut RC, tandis que certains exemples oRPC courants ciblent une bêta : utiliser une ligne cohérente, sans mélange de guides. Les différences d'imports Better Auth/Drizzle et dnd-kit sont consignées dans la [recherche technique](research/technical-sources.md). Le lockfile pnpm est désormais présent et le build est validé ; voir le rapport de livraison pour les versions retenues.
 
-Le socle V1 n'a besoin ni de Redis, ni de serveur WebSocket, ni de CRDT, ni de Pusher, ni de service cloud Tiptap. Les éventuels peers de package ne doivent pas activer une fonctionnalité de collaboration. Trigger.dev reste une option de phase ultérieure, derrière le traitement de tâches longues ; l'authentification n'en dépend pas.
+Le temps réel repose désormais sur Yjs, PostgreSQL LISTEN/NOTIFY et SSE avec mutations oRPC. Aucun serveur WebSocket séparé, Redis, Pusher ou service cloud Tiptap n’est requis. Voir [ADR 0006](adr/0006-realtime-collaboration.md). Trigger.dev reste une option de phase ultérieure, derrière le traitement de tâches longues ; l'authentification n'en dépend pas.
 
 ## 3. Architecture et propriété de l'état
 
@@ -82,9 +84,10 @@ Les routes et procédures sont minces. Les modules `Pages`, `Documents`, `Databa
 | État | Autorité | Règle de synchronisation |
 | --- | --- | --- |
 | Session | Better Auth | Vérifiée au serveur ; aucune copie de token dans Zustand |
-| Pages, propriétés, membres | PostgreSQL, cache Query | Cache segmenté par utilisateur/workspace et invalidé après mutation |
+| Membres, invitations, équipes | Better Auth Organization | API et règles natives du plugin ; aucune gestion parallèle |
+| Pages, propriétés | PostgreSQL, cache Query | Cache segmenté par utilisateur/workspace et invalidé après mutation |
 | Vue et filtre navigables | Router | Validation URL ; une seule autorité, sans miroir nuqs |
-| Document non enregistré | Tiptap | Une instance par page ouverte ; refetch interdit d'écraser un document sale |
+| Document et titre | Yjs, persistance PostgreSQL | Mises à jour fusionnées, présence par page et brouillon IndexedDB ; les refetch ne remplacent pas l’éditeur |
 | Ouverture sidebar | SidebarProvider shadcn | Propriétaire unique ; persistance via adaptateur si nécessaire |
 | Arbre développé, panneaux | Zustand | Sélecteurs ciblés ; aucune liste de pages dupliquée |
 | Brouillons de secours | IndexedDB | Clé utilisateur/workspace/page ; purge à la déconnexion selon politique explicite |
@@ -98,8 +101,8 @@ Toutes les tables de contenu portent `workspace_id`. Les FK composites et contra
 | Ensemble | Données principales et contraintes |
 | --- | --- |
 | Auth Better Auth | Tables user, session, account, verification générées depuis la configuration retenue |
-| workspaces / workspace_members | Nom, propriétaire ; unicité workspace/user ; rôle owner, editor ou viewer |
-| workspace_invitations | Email, rôle borné, expiration, jeton haché ; acceptation vérifie l'identité |
+| Organization Better Auth | Un espace = une organisation ; member porte l’appartenance et le rôle, team/team_member les équipes |
+| Invitation Better Auth | Email, rôle, équipe facultative, expiration, statut et invitant ; acceptation par le plugin, email vérifié obligatoire |
 | pages | Titre, parent, icône, cover, ordre, type, auteur, révision métadonnées, dates de corbeille |
 | page_documents | Une ligne par page : JSON Tiptap, schema_version, revision, texte de recherche dérivé |
 | document_versions | Snapshots de restauration, auteur, révision, motif, rétention |
@@ -130,7 +133,7 @@ Index prioritaires : membres workspace/user ; pages workspace/parent/ordre ; sou
 
 Parcours : inscription email/mot de passe → création idempotente du premier workspace → page d'accueil. Connexion, déconnexion, récupération du mot de passe, changement de mot de passe et gestion du profil font partie du socle. Pas d'OAuth, SSO, magic link, passkey ou MFA en V1.
 
-Better Auth conserve `/api/auth/*`, son client et son middleware de cookies TanStack. `emailAndPassword.enabled` active le mode demandé. Le serveur appelle l'API de session Better Auth avant les opérations privées. oRPC gère ensuite l'autorisation métier ; il ne réimplémente pas l'authentification. [Intégration officielle](https://better-auth.com/docs/integrations/tanstack).
+Better Auth conserve `/api/auth/*`, son client et son middleware de cookies TanStack. `emailAndPassword.enabled` active le mode demandé. Le serveur appelle l'API de session Better Auth avant les opérations privées. Le plugin Organization possède les espaces, membres, rôles, invitations et équipes ; les écrans utilisent directement son client. oRPC gère ensuite les restrictions propres aux contenus à partir des appartenances et permissions Better Auth. Voir [ADR 0005](adr/0005-better-auth-organizations.md). [Intégration officielle](https://better-auth.com/docs/integrations/tanstack).
 
 Cookies HttpOnly, Secure en production, origine autorisée, limitation d'essais persistante compatible déploiement, erreurs de récupération non révélatrices et jetons expirables. SMTP est requis pour le reset en production, Mailpit suffit localement. Inscription personnelle possible immédiatement ; une adresse doit être vérifiée avant d'accepter une invitation associée à cette adresse. L'inscription publique peut être désactivée pour un auto-hébergement privé après création de l'administrateur.
 
@@ -138,23 +141,25 @@ L'autorisation s'applique à chaque lecture et mutation, y compris recherche, ex
 
 V1 : owner administre l'espace, editor édite le contenu autorisé, viewer consulte. Une racine privée est accessible à son créateur et ses invités explicites ; l'administration de l'espace n'accorde pas automatiquement lecture des pages privées. Les descendants héritent ; aucune exception imbriquée en V1. Avant cette tranche de partage, l'espace initial possède uniquement son propriétaire. L'interface masque les actions interdites, le serveur les refuse indépendamment.
 
-## 6. Éditeur Tiptap et sauvegarde sans temps réel
+## 6. Éditeur Tiptap collaboratif
 
 Un seul document ProseMirror par page. Blocs de base : texte, titres 1–3, listes, tâches, toggle, citation, callout, séparateur, code, lien, image, pièce jointe, table simple et lien de sous-page. Les types avancés apparaissent en phase 2 : colonnes, formules mathématiques, table des matières, embeds et blocs synchronisés.
 
 Interactions : commande `/` filtrable au clavier ; menu de bloc ; barre contextuelle sur sélection ; conversion de type ; indentation ; raccourcis ; copier/coller texte, HTML et Markdown ; annuler/rétablir ; déplacer un bloc puis annuler ce déplacement en une opération. Chaque bloc a un ID stable, remappé à la duplication/copie, conservé au déplacement. Le code Tiptap open source fournit le moteur et certaines extensions ; nos menus, nœuds et cas avancés sont du code applicatif à construire.
 
-Le drag interne passe par Tiptap/ProseMirror pour préserver sélection et historique. dnd-kit gère le tree, les favoris et le board, avec handles dédiés, activation distincte du clic et alternative clavier. Ne pas monter un sortable dnd-kit autour de chaque paragraphe éditable. L'extension DragHandle React et ses peers doivent être testés sans activation de collaboration ; les [sources officielles](research/technical-sources.md) détaillent ce contrôle.
+Le drag interne passe par Tiptap/ProseMirror pour préserver sélection et historique. dnd-kit gère le tree, les favoris et le board, avec handles dédiés, activation distincte du clic et alternative clavier. Ne pas monter un sortable dnd-kit autour de chaque paragraphe éditable. L'extension DragHandle React et ses peers doivent être testés avec la collaboration ; les [sources officielles](research/technical-sources.md) détaillent ce contrôle.
 
-Protocole `saveDocument(pageId, expectedRevision, mutationId, schemaVersion, content)` :
+Le parcours interactif utilise `realtime.sync(pageId, vector, update)` : les mises à jour Yjs sont regroupées sur 25 ms puis envoyées sans attendre un blur ; les participants reçoivent les changements dès le commit PostgreSQL. Le titre utilise Y.Text, les blocs le fragment Tiptap, et les curseurs les positions relatives Yjs. Une reconnexion échange les différences et retransmet les changements non acquittés.
+
+Le protocole de remplacement explicite `saveDocument(pageId, expectedRevision, mutationId, content)` reste disponible pour Codex et les imports :
 
 1. Valider session, accès, taille maximale et schéma de chaque nœud ; refuser les types inconnus en écriture.
-2. Débouncer à 700 ms et sérialiser les requêtes par page. Si l'utilisateur continue d'écrire pendant une requête, conserver le dernier état pour la suivante.
+2. Sérialiser les remplacements explicites et conserver le CRDT existant lorsque la page a déjà été ouverte en collaboration.
 3. Dans une transaction, vérifier la révision et enregistrer contenu, nouvelle révision, index de recherche dérivé et reçu d'idempotence. Un retry du même mutationId/payload renvoie le même résultat ; un payload différent pour le même ID est rejeté.
-4. Si la révision diverge, renvoyer `CONFLICT` avec la révision actuelle. Conserver le brouillon ; proposer recharger après sauvegarde locale, comparer/exporter ou créer une copie. Aucun merge automatique en V1.
+4. Si la révision diverge, renvoyer `CONFLICT` avec la révision actuelle. Conserver le brouillon ; proposer recharger après sauvegarde locale, comparer/exporter ou créer une copie. Cette vérification concerne les remplacements complets ; les saisies interactives utilisent la fusion CRDT.
 5. N'afficher « Enregistré » que si le serveur a confirmé la dernière génération locale. Une réponse ancienne ne remet pas un document plus récent à l'état propre.
 
-États visibles : enregistré → modifications locales → enregistrement → enregistré ; branches erreur réseau, session expirée et conflit. Conserver un brouillon IndexedDB pendant la saisie. À la reconnexion, relire la révision avant de reproposer la sauvegarde. Ne pas dépendre d'un `beforeunload` ou d'un beacon pour la durabilité ; avertir à la navigation quand il reste des changements. Refetch au focus seulement si le document est propre. Pas de polling rapide ni de promesse de mode hors ligne complet.
+États visibles : enregistré → modifications locales → enregistrement → enregistré ; branches erreur réseau, session expirée et conflit. Conserver un brouillon IndexedDB pendant la saisie. À la reconnexion, échanger les états CRDT et retransmettre les différences non acquittées. Ne pas dépendre d'un `beforeunload` ou d'un beacon pour la durabilité ; avertir à la navigation quand il reste des changements. Le refetch des métadonnées ne remonte pas une nouvelle instance de l’éditeur. Pas de polling rapide ni de promesse de mode hors ligne complet.
 
 Historique : checkpoint périodique lorsqu'il y a des modifications, avant restauration et actions destructives ; conserver séparément la révision courante de concurrence. Valeurs proposées : snapshot toutes les cinq minutes d'édition et rétention 30 jours configurable. Une restauration crée une nouvelle révision et préserve l'état actuel dans l'historique.
 
@@ -176,7 +181,7 @@ Phase 2 : relations bidirectionnelles, rollups, moteur de formules parsé/interp
 | Pages | Imbrication, titre, icône, cover, duplication, liens, import Markdown | Wiki, vérification, backlinks riches, modèles partagés | Marketplace de modèles |
 | Édition | Blocs de base, slash, menus, drag, undo, autosave, historique | Colonnes, maths, embeds, boutons, blocs synchronisés | IA d'écriture et agents |
 | Bases | Propriétés typées, table/board/liste/galerie, tri/filtre, CSV | Calendrier si non livré V1, relations, rollups, formules, timeline, agrégats, vues liées | Graphiques, formulaires, dashboards, feed, map, multisource |
-| Collaboration | Invitations et permissions, édition asynchrone avec conflits | Commentaires, mentions, notifications par rechargement | Temps réel uniquement après nouvelle décision explicite |
+| Collaboration | Titres et documents simultanés, curseurs/sélections, présence, changements de pages/bases/vues/permissions en direct | Commentaires et mentions | Conflits explicites pour les mêmes propriétés structurées |
 | Publication | Export portable Markdown/JSON/CSV | Pages publiques, liens révocables, sites simples | Domaines personnalisés et publication avancée |
 | Intégrations | Fichiers et SMTP auto-hébergés | API publique, webhooks, imports Notion ZIP avec rapport de pertes | Automatisations, connecteurs et agents externes |
 | Plateformes | Web responsive | PWA et récupération de brouillons renforcée | Offline complet, apps natives, Mail/Calendar comme produits séparés |
@@ -211,6 +216,6 @@ Docker Compose local : app, PostgreSQL, Mailpit et volume d'assets. Prod mono-in
 
 ## 10. Condition de fin
 
-La **V1** est terminée quand ses tickets sont `done`, les parcours réels fonctionnent sur un environnement vierge, les critères de sécurité/fiabilité passent et la documentation d'exploitation est utilisable par une autre personne. La **parité Notion** reste partielle tant que des lignes de la matrice sont différées. Le temps réel reste exclu tant qu'une nouvelle demande ne l'autorise pas.
+La **V1** est terminée quand ses tickets sont `done`, les parcours réels fonctionnent sur un environnement vierge, les critères de sécurité/fiabilité passent et la documentation d'exploitation est utilisable par une autre personne. La **parité Notion** reste partielle tant que des lignes de la matrice sont différées. Le temps réel est désormais demandé explicitement ; ses validations sont décrites dans [le rapport dédié](validation/realtime.md).
 
 Documents associés : [grill autonome](decisions/grill-autonome.md), [design et sidebar-10](design/notion-reference.md), [audit des 17 règles](research/rules-audit.md), [sources techniques](research/technical-sources.md), [spec](../.scratch/notion/spec.md), [tickets](../.scratch/notion/README.md).

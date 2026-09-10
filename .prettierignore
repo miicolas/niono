@@ -10,3 +10,4 @@ node_modules
 .scratch
 pnpm-lock.yaml
 packages/db/migrations/meta
+packages/server/src/codex/protocol

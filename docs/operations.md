@@ -53,3 +53,21 @@ Créer une installation Compose distincte (`-p digipm-restore`) avec d’autres 
 Stockage local, prévu pour une seule instance web. Pour plusieurs replicas, fournir un stockage partagé avant de répartir le trafic. Pas de suppression définitive ni rétention automatique ; les anciennes versions, reçus de sauvegarde et fichiers non référencés occupent donc de l’espace. Surveiller les volumes. L’API journalise méthode, statut, durée et identifiant de requête si LOG_REQUESTS=true, sans document ni secret.
 
 L’IA est facultative : `AI_BASE_URL` est une URL administrateur de service compatible Chat Completions, `AI_MODEL` le nom du modèle et `AI_API_KEY` sa clé éventuelle. Seul le texte explicitement sélectionné est envoyé après l’action utilisateur. Aucun service IA n’est provisionné et aucune génération n’a été validée sans fournisseur configuré.
+
+## Assistant Codex personnel
+
+La connexion par compte ChatGPT/Codex, le runtime privé, ses limites et la sauvegarde du volume `codex_data` sont documentés dans [Codex dans DigiPM](codex.md). Appliquer les migrations avant démarrage.
+
+## Migration de la gestion des membres
+
+La migration `0005_better_auth_organizations` transfère les espaces, appartenances et invitations vers Better Auth Organization et ajoute les équipes. Exécuter les migrations avant de démarrer cette version de l’application. Les espaces, comptes, rôles et contenus existants sont conservés. Les anciens liens d’invitation sont annulés et doivent être réémis depuis les paramètres ; les nouvelles invitations sont envoyées par Better Auth via le SMTP configuré. Voir [la validation](validation/better-auth.md) et [ADR 0005](adr/0005-better-auth-organizations.md).
+
+## Temps réel
+
+Appliquer les migrations `0009` à `0012` avant de démarrer cette version. La conversion des documents existants se fait à leur première ouverture, sous verrou, sans perte du JSON ni de l’historique. Le dump PostgreSQL inclut `collaboration_state`, les triggers et les fonctions ; ne pas reconstruire les CRDT à partir des exports JSON lors d’une restauration technique. Une importation fonctionnelle crée, elle, de nouvelles pages indépendantes.
+
+Le proxy doit transmettre `/api/realtime` en streaming, désactiver son buffering et sa mise en cache, conserver les cookies et accepter des connexions longues. Pour nginx : `proxy_buffering off; proxy_cache off; proxy_read_timeout 60s;`. Le serveur émet un heartbeat toutes les 10 secondes et `X-Accel-Buffering: no`. Les écritures passent par les POST oRPC déjà protégés par l’origine. Aucun port supplémentaire n’est exposé.
+
+Chaque processus web ouvre une connexion PostgreSQL LISTEN supplémentaire, distincte du pool des transactions (10 connexions). Utiliser une connexion PostgreSQL directe ou un pool en mode session pour LISTEN, jamais un pool en mode transaction. Plusieurs processus reçoivent les commits ; le stockage des fichiers doit néanmoins être partagé pour utiliser plusieurs instances de toute l’application. Le flux se réabonne après une coupure PostgreSQL et force une resynchronisation complète des caches.
+
+Les présences expirent après 30 secondes et les lignes expirées sont supprimées lors des annonces suivantes. Elles ne constituent pas un historique d’activité. Les brouillons de contenu sont dans IndexedDB, séparés par utilisateur/espace/page et fusionnés entre onglets. Le serveur confirme l’enregistrement seulement après commit. Les clients privés d’accès ne peuvent pas publier leurs changements en attente. L’application n’est pas une PWA hors ligne : une connexion est nécessaire pour son premier chargement.

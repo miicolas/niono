@@ -1,0 +1,152 @@
+/* Quiet surfaces and purposeful feedback, shared with the workspace theme. */
+.codex-panel:is([data-slot="sheet-content"], [data-slot="drawer-content"]) {
+  width: min(460px, 100vw);
+  max-width: 460px;
+  gap: 0;
+  background: var(--background);
+  box-shadow: -8px 0 32px #0000000a;
+  outline: none;
+  animation-duration: 200ms;
+  animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
+.codex-header {
+  padding: 16px 18px 6px;
+}
+.codex-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.codex-heading :is([data-slot="sheet-title"], [data-slot="drawer-title"]) {
+  font-size: 15px;
+  letter-spacing: -0.025em;
+}
+.codex-personal {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.codex-header-actions {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+.codex-header-actions button {
+  width: 30px;
+  height: 30px;
+  color: var(--muted-foreground);
+}
+.codex-history {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 18px 12px;
+  color: var(--muted-foreground);
+}
+.codex-history [data-slot="select-trigger"] {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  padding: 4px;
+  font-size: 12px;
+}
+.codex-history > button:not([data-slot="select-trigger"]) {
+  width: 30px;
+  height: 30px;
+}
+.codex-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px 24px 24px;
+  scrollbar-width: thin;
+}
+.codex-welcome {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100%;
+  padding: 20px 4px 32px;
+}
+.codex-welcome-mark {
+  margin-bottom: 22px;
+}
+.codex-welcome h2 {
+  white-space: pre-line;
+  font-size: 30px;
+  line-height: 1.18;
+  font-weight: 550;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+.codex-welcome > p {
+  margin-top: 14px;
+  max-width: 320px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted-foreground);
+}
+.codex-suggestions {
+  display: grid;
+  gap: 6px;
+  margin-top: 28px;
+}
+.codex-suggestions button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+.codex-suggestion-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--muted-foreground);
+  background: color-mix(in srgb, var(--muted) 45%, transparent);
+}
+.codex-suggestions strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+}
+.codex-suggestions small {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.codex-suggestion-arrow {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+  opacity: 0.55;
+  transition:
+    transform 150ms cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 150ms ease;
+}
+.codex-suggestions button:focus-visible,
+.codex-presets button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.codex-composer {
+  flex-shrink: 0;
+  padding: 8px 16px max(12px, env(safe-area-inset-bottom));
+}
